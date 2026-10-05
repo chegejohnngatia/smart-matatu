@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Matatu Passenger</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .status {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <h1>SMART MATATU</h1>
+
+    <p>
+        Matatu:
+        <strong>{{ matatu["registration_number"] }}</strong>
+    </p>
+
+    <p>
+        Route:
+        <strong>{{ matatu["route_name"] }}</strong>
+    </p>
+
+    <p>
+        Passenger ID:
+        <strong>{{ passenger_token }}</strong>
+    </p>
+
+
+    <!-- DESTINATION SELECTION -->
+
+    <div class="card">
+
+        <h2>Select Your Destination</h2>
+
+        <form method="POST">
+
+            <label>Select your destination:</label>
+
+            <br><br>
+
+            <select name="destination_stage_id" required>
+
+                <option value="">
+                    -- Select Stage --
+                </option>
+
+                {% for stage in stages %}
+
+                    <option value="{{ stage['id'] }}">
+                        {{ stage["sequence_number"] }}.
+                        {{ stage["name"] }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+            <br><br>
+
+            <button type="submit">
+                Confirm Destination
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- LIVE DASHBOARD -->
+
+    <div class="card">
+
+        <h2>Live Journey Status</h2>
+
+        <p>
+            Destination:
+            <strong id="destination">Loading...</strong>
+        </p>
+
+        <p>
+            Status:
+            <span class="status" id="status">Loading...</span>
+        </p>
+
+        <p>
+            Remaining Distance:
+            <span class="value" id="distance">Loading...</span>
+        </p>
+
+        <p>
+            Average Speed:
+            <span class="value" id="speed">Loading...</span>
+        </p>
+
+        <p>
+            Estimated Arrival:
+            <span class="value" id="eta">Loading...</span>
+        </p>
+
+    </div>
+
+
+    <script>
+
+        async function updateDashboard() {
+
+            try {
+
+                const response = await fetch(
+                    "/vehicle-status/{{ matatu['id'] }}"
+                );
+
+                const data = await response.json();
+
+                if (data.passengers.length === 0) {
+                    return;
+                }
+
+                // Find this specific passenger
+                const passenger = data.passengers.find(
+                    p => p.id == "{{ passenger_id }}"
+                );
+
+                // Make sure the passenger was found
+                if (!passenger) {
+
+                    console.log(
+                        "Passenger not found:",
+                        "{{ passenger_id }}"
+                    );
+
+                    return;
+                }
+
+                // Destination
+                document.getElementById("destination").textContent =
+                    passenger.destination;
+
+                // Status
+                document.getElementById("status").textContent =
+                    passenger.status;
+
+                // Remaining distance
+                document.getElementById("distance").textContent =
+                    passenger.distance.toFixed(2) + " km";
+
+                // Average speed
+                document.getElementById("speed").textContent =
+                    passenger.speed.toFixed(1) + " km/h";
+
+                // Estimated arrival
+                if (passenger.status === "Arrived") {
+
+                    document.getElementById("eta").textContent =
+                        "You have reached your destination.";
+
+                } else if (passenger.eta === null) {
+
+                    document.getElementById("eta").textContent =
+                        "Unavailable while stopped";
+
+                } else {
+
+                    document.getElementById("eta").textContent =
+                        passenger.eta.toFixed(1) + " minutes";
+
+                }
+
+            } catch (error) {
+
+                console.log(
+                    "Dashboard update failed:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        // Update dashboard immediately
+        updateDashboard();
+
+
+        // Update dashboard every 1 second
+        setInterval(updateDashboard, 1000);
+
+    </script>
+
+</body>
+
+</html>
+

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Matatus</title>
+```
+
+</head>
+
+<body>
+
+```
+<h1>REGISTERED MATATUS</h1>
+
+<a href="/add-matatu">
+    Add New Matatu
+</a>
+
+<br><br>
+
+{% if vehicles %}
+
+    <table border="1" cellpadding="10">
+
+        <tr>
+
+            <th>ID</th>
+
+            <th>Registration</th>
+
+            <th>Route</th>
+
+            <th>Actions</th>
+
+        </tr>
+
+        {% for vehicle in vehicles %}
+
+            <tr>
+
+                <td>
+                    {{ vehicle["id"] }}
+                </td>
+
+                <td>
+                    {{ vehicle["registration_number"] }}
+                </td>
+
+                <td>
+                    {{ vehicle["route_name"] }}
+                </td>
+
+                <td>
+
+                    <a href="/passenger/{{ vehicle['id'] }}">
+                        <button type="button">
+                            View
+                        </button>
+                    </a>
+
+                    <a href="/generate-qr/{{ vehicle['id'] }}">
+                        <button type="button">
+                            Generate Passenger QR
+                        </button>
+                    </a>
+
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+    </table>
+
+{% else %}
+
+    <p>No matatus registered yet.</p>
+
+{% endif %}
+
+
+{% if qr_data %}
+
+    <hr>
+
+    <h2>Passenger QR Code</h2>
+
+    <h3>
+        {{ qr_matatu["registration_number"] }}
+    </h3>
+
+    <p>
+        Route:
+        {{ qr_matatu["route_name"] }}
+    </p>
+
+    <p>
+        Scan this QR code to access the passenger dashboard
+        for this matatu.
+    </p>
+
+    <img
+        src="data:image/png;base64,{{ qr_data }}"
+        alt="Passenger QR Code"
+        width="300"
+    >
+
+    <p>
+        Passenger URL:
+        <strong>{{ qr_url }}</strong>
+    </p>
+
+{% endif %}
+
+<br>
+
+<a href="/">
+    Back to Dashboard
+</a>
+
+
+</body>
+
+</html>

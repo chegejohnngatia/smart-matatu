@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Conductor Dashboard</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .matatu-info {
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .empty {
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <h1>CONDUCTOR DASHBOARD</h1>
+
+    <div class="matatu-info">
+
+        <h2>
+            {{ matatu["registration_number"] }}
+        </h2>
+
+        <p>
+            Route:
+            <strong>
+                {{ matatu["route_name"] }}
+            </strong>
+        </p>
+
+    </div>
+
+    <hr>
+
+    <h2>Passengers</h2>
+
+    {% if passengers %}
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Passenger ID</th>
+
+                    <th>Destination</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for passenger in passengers %}
+
+                    <tr>
+
+                        <td>
+                            {{ passenger["passenger_token"] }}
+                        </td>
+
+                        <td>
+                            {{ passenger["destination"] }}
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    {% else %}
+
+        <div class="empty">
+
+            <p>
+                No passengers currently registered.
+            </p>
+
+        </div>
+
+    {% endif %}
+
+    <br>
+
+    <a href="/">
+        Back to Dashboard
+    </a>
+
+</body>
+
+</html>

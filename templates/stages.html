@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Route Stages</title>
+</head>
+
+<body>
+
+    <h1>ROUTE STAGES</h1>
+
+    <a href="/add-stage">
+        Add New Stage
+    </a>
+
+    <br><br>
+
+    {% if stages %}
+
+        <table border="1" cellpadding="10">
+
+            <tr>
+                <th>ID</th>
+                <th>Route</th>
+                <th>Stage</th>
+                <th>Order</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+
+            {% for stage in stages %}
+
+                <tr>
+
+                    <td>
+                        {{ stage["id"] }}
+                    </td>
+
+                    <td>
+                        {{ stage["route_name"] }}
+                    </td>
+
+                    <td>
+                        {{ stage["name"] }}
+                    </td>
+
+                    <td>
+                        {{ stage["sequence_number"] }}
+                    </td>
+
+                    <td>
+                         {{ stage["latitude"] }}
+                    </td>
+
+                    <td>
+                        {{ stage["longitude"] }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </table>
+
+    {% else %}
+
+        <p>No stages registered yet.</p>
+
+    {% endif %}
+
+    <br>
+
+    <a href="/">
+        Back to Dashboard
+    </a>
+
+</body>
+
+</html>
