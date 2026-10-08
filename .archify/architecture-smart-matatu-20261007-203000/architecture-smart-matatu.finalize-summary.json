@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+    "sha256": "157892b8cd0cfeac83599ba1262e270c43d363828f6a0260fe55d3082f0f34f4",
+    "bytes": 13976
+  },
+  "artifact": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.html"
+  },
+  "gates": {
+    "validate": "fail",
+    "deliver": "not-run",
+    "check": "not-run",
+    "browser-check": "not-run"
+  },
+  "failedStage": "validate",
+  "diagnostics": [
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/frontend (id/label: \"Template/View\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/frontend",
+        "identity": "Template/View"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/0/icon (id/label: \"web-client\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/0/icon",
+        "identity": "web-client"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/1/sources/0 (id/label: \"flask-app\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/1/sources/0",
+        "identity": "flask-app"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/backend (id/label: \"Flask Route\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/backend",
+        "identity": "Flask Route"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/database (id/label: \"Database\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/database",
+        "identity": "Database"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/security (id/label: \"Utility\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/security",
+        "identity": "Utility"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/external (id/label: \"External Lib\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/external",
+        "identity": "External Lib"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/1/icon (id/label: \"flask-app\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/1/icon",
+        "identity": "flask-app"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 66,
+    "shown": 8,
+    "truncated": true
+  },
+  "evidence": {
+    "receipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.finalize.json",
+    "summaryReceipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.finalize-summary.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-07T04:13:24.185Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 805,
+  "nextAction": {
+    "action": "edit-in-place",
+    "candidate": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+    "constraint": "Preserve all semantics and user-fixed geometry. Use references/architecture-layout-repair.md to choose a local repair or connected-scene reflow; edit the existing candidate.",
+    "then": "finalize-once"
+  }
+}

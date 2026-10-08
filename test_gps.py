@@ -1,4 +1,4 @@
-from gps import calculate_distance
+from gps import calculate_distance, haversine_distance_m, haversine_distance_km
 
 
 latitude = -1.286389

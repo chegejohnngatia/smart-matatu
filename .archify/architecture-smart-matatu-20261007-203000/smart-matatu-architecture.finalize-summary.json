@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "running",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+    "sha256": "c13b47d2e2265529fd3c9c10aad93b58af32542deb0cbf84012e9aa7e33d035c",
+    "bytes": 6449
+  },
+  "artifact": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+    "sha256": "39f1c04122112b0fa2c80e4a2ae1f40ae8b1a3d4fd58f4b37a6bef294d55ad8b",
+    "bytes": 766523
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "not-run",
+    "browser-check": "not-run"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.finalize.json",
+    "summaryReceipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.finalize-summary.json"
+  },
+  "visualReview": "not-requested"
+}

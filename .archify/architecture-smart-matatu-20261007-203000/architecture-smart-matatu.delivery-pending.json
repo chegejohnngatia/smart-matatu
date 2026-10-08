@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "command": "deliver",
+  "status": "pending",
+  "receiptId": "c36bf868-d4d1-4a08-b105-ba480c55d346",
+  "input": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+  "output": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.html"
+}

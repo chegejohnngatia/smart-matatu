@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from database import init_db, get_db_connection
-from gps import calculate_distance
+from gps import calculate_distance, haversine_distance_km, haversine_distance_m
 import socket
 import qrcode
 import io

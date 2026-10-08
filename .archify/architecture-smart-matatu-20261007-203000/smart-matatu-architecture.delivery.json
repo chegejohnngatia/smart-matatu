@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "be06be9f-cd6e-4855-b72c-2dffe445fa5d",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+  "output": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+  "specification": {
+    "sha256": "c13b47d2e2265529fd3c9c10aad93b58af32542deb0cbf84012e9aa7e33d035c",
+    "bytes": 6449
+  },
+  "artifact": {
+    "sha256": "39f1c04122112b0fa2c80e4a2ae1f40ae8b1a3d4fd58f4b37a6bef294d55ad8b",
+    "bytes": 766523
+  }
+}

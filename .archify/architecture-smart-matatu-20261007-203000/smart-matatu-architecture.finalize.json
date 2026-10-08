@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "running",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-07T18:13:54.916Z",
+  "specification": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+    "sha256": "c13b47d2e2265529fd3c9c10aad93b58af32542deb0cbf84012e9aa7e33d035c",
+    "bytes": 6449
+  },
+  "artifact": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+    "sha256": "39f1c04122112b0fa2c80e4a2ae1f40ae8b1a3d4fd58f4b37a6bef294d55ad8b",
+    "bytes": 766523
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/home/noble/.nvm/versions/node/v24.20.0/bin/node",
+        "/home/noble/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/noble/Desktop/smart-matatu",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "c13b47d2e2265529fd3c9c10aad93b58af32542deb0cbf84012e9aa7e33d035c",
+          "bytes": 6449
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1216,
+      "command": [
+        "/home/noble/.nvm/versions/node/v24.20.0/bin/node",
+        "/home/noble/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/noble/Desktop/smart-matatu",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "be06be9f-cd6e-4855-b72c-2dffe445fa5d",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+        "output": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.html",
+        "specification": {
+          "sha256": "c13b47d2e2265529fd3c9c10aad93b58af32542deb0cbf84012e9aa7e33d035c",
+          "bytes": 6449
+        },
+        "artifact": {
+          "sha256": "39f1c04122112b0fa2c80e4a2ae1f40ae8b1a3d4fd58f4b37a6bef294d55ad8b",
+          "bytes": 766523
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/chegejohnngatia/smart-matatu",
+          "revision": "7bc85aa68b3a91522bf4c4849ae317e2b61c0275",
+          "references": 4
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.finalize.json",
+    "summaryReceipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/smart-matatu-architecture.finalize-summary.json"
+  },
+  "visualReview": "not-requested"
+}

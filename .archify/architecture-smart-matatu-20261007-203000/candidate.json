@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Smart Matatu System",
+    "subtitle": "Passenger Destination & Stop Notification MVP",
+    "output": "smart-matatu-architecture.html",
+    "quality_profile": "showcase",
+    "visual_preset": "classic",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": { "label": "Frontend (Templates)" },
+        "backend": { "label": "Backend (Flask)" },
+        "database": { "label": "Database (SQLite)" },
+        "external": { "label": "External Users / Services" },
+        "cloud": { "label": "Utilities" }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/chegejohnngatia/smart-matatu.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "7bc85aa68b3a91522bf4c4849ae317e2b61c0275"
+    }
+  },
+  "components": [
+    {
+      "id": "passenger",
+      "type": "external",
+      "label": "Passenger",
+      "sublabel": "Mobile Browser",
+      "icon": "person",
+      "pos": [50, 500],
+      "size": [130, 60]
+    },
+    {
+      "id": "conductor",
+      "type": "external",
+      "label": "Conductor",
+      "sublabel": "Dashboard View",
+      "icon": "person",
+      "pos": [50, 380],
+      "size": [130, 60]
+    },
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "Management UI",
+      "icon": "briefcase",
+      "pos": [50, 260],
+      "size": [130, 60]
+    },
+    {
+      "id": "qr_generator",
+      "type": "cloud",
+      "label": "QR Code Generator",
+      "sublabel": "qrcode library",
+      "icon": "cloud",
+      "pos": [750, 324],
+      "size": [130, 60]
+    },
+    {
+      "id": "gps_calc",
+      "type": "cloud",
+      "label": "GPS Calculator",
+      "sublabel": "Haversine formula",
+      "icon": "clock",
+      "pos": [50, 24],
+      "size": [130, 60]
+    },
+    {
+      "id": "templates",
+      "type": "frontend",
+      "label": "Web Templates",
+      "sublabel": "Jinja2 / HTML",
+      "icon": "frontend",
+      "pos": [300, 440],
+      "size": [150, 60],
+      "sources": [{ "path": "templates/index.html", "label": "7 Jinja2 templates" }]
+    },
+    {
+      "id": "flask_app",
+      "type": "backend",
+      "label": "Flask Application",
+      "sublabel": "app.py (877 lines)",
+      "icon": "backend",
+      "pos": [550, 324],
+      "size": [180, 80],
+      "sources": [{ "path": "app.py", "line": 1, "end_line": 877, "label": "Routes & Business Logic" }]
+    },
+    {
+      "id": "db_module",
+      "type": "backend",
+      "label": "Database Module",
+      "sublabel": "database.py",
+      "icon": "database",
+      "pos": [550, 184],
+      "size": [180, 60],
+      "sources": [{ "path": "database.py", "line": 1, "end_line": 54, "label": "Schema & Connection" }]
+    },
+    {
+      "id": "sqlite_db",
+      "type": "database",
+      "label": "SQLite Database",
+      "sublabel": "smart_matatu.db",
+      "icon": "database",
+      "pos": [800, 180],
+      "size": [160, 80],
+      "sources": [{ "path": "smart_matatu.db", "label": "4 tables: matatus, stages, ..." }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Presentation Layer",
+      "wraps": ["templates", "passenger", "conductor", "admin"],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "Application Layer",
+      "wraps": ["flask_app", "db_module", "qr_generator", "gps_calc"],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "Data Layer",
+      "wraps": ["sqlite_db"],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "id": "passenger-to-templates",
+      "from": "passenger",
+      "to": "templates",
+      "label": "HTTP GET/POST",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conductor-to-templates",
+      "from": "conductor",
+      "to": "templates",
+      "label": "HTTP GET"
+    },
+    {
+      "id": "admin-to-templates",
+      "from": "admin",
+      "to": "templates",
+      "label": "HTTP GET/POST"
+    },
+    {
+      "id": "templates-to-flask",
+      "from": "templates",
+      "to": "flask_app",
+      "label": "Route Handlers",
+      "variant": "emphasis"
+    },
+    {
+      "id": "flask-to-db-module",
+      "from": "flask_app",
+      "to": "db_module",
+      "label": "get_db_connection()",
+      "variant": "default"
+    },
+    {
+      "id": "db-module-to-sqlite",
+      "from": "db_module",
+      "to": "sqlite_db",
+      "label": "SQLite3 API",
+      "variant": "default"
+    },
+    {
+      "id": "flask-to-qr",
+      "from": "flask_app",
+      "to": "qr_generator",
+      "label": "qrcode.make()",
+      "variant": "dashed"
+    },
+    {
+      "id": "flask-to-gps",
+      "from": "flask_app",
+      "to": "gps_calc",
+      "label": "calculate_distance()",
+      "variant": "dashed"
+    },
+    {
+      "id": "qr-to-templates",
+      "from": "qr_generator",
+      "to": "templates",
+      "label": "Base64 PNG",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Core Features",
+      "items": [
+        "Matatu registration & route assignment",
+        "Route stages with GPS coordinates",
+        "QR-code passenger booking",
+        "Conductor stop notification dashboard",
+        "Real-time vehicle tracking simulation",
+        "ETA calculation via Haversine formula"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Data Model",
+      "items": [
+        "matatus: id, registration_number, route_name",
+        "stages: id, route_name, name, lat/lng, sequence",
+        "passenger_destinations: id, matatu_id, token, stage_id, status",
+        "matatu_locations: matatu_id, lat/lng, current_stage, speed"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Key Routes",
+      "items": [
+        "GET/POST /add-matatu — Register vehicle",
+        "GET/POST /add-stage — Define route stops",
+        "GET /generate-qr/<id> — Passenger QR code",
+        "GET/POST /passenger/<id> — Book destination",
+        "GET /conductor/<id> — Ordered passenger list",
+        "POST /notify-passenger/<id> — Mark notified",
+        "GET /vehicle-status/<id> — ETA JSON API",
+        "GET/POST /move-matatu/<id> — Simulate movement"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Tech Stack",
+      "items": [
+        "Python 3 + Flask 3.1",
+        "SQLite (embedded)",
+        "Jinja2 templates",
+        "qrcode + Pillow for QR images",
+        "Haversine distance (math)"
+      ]
+    }
+  ]
+}

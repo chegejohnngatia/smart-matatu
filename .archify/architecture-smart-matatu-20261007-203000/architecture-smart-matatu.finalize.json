@@ -1,0 +1,3213 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-07T17:31:18.877Z",
+  "specification": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+    "sha256": "157892b8cd0cfeac83599ba1262e270c43d363828f6a0260fe55d3082f0f34f4",
+    "bytes": 13976
+  },
+  "artifact": {
+    "path": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.html"
+  },
+  "stages": {
+    "validate": {
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": null,
+      "command": [
+        "/home/noble/.nvm/versions/node/v24.20.0/bin/node",
+        "/home/noble/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+        "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/noble/Desktop/smart-matatu",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "deliver",
+        "receiptId": "c36bf868-d4d1-4a08-b105-ba480c55d346",
+        "stage": "render",
+        "type": "architecture",
+        "input": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/candidate.json",
+        "output": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.html",
+        "error": "architecture schema validation failed:\n  /meta/legend/entries/frontend (id/label: \"Template/View\") must NOT have additional properties {\"additionalProperty\":\"description\"}\n  /meta/legend/entries/backend (id/label: \"Flask Route\") must NOT have additional properties {\"additionalProperty\":\"description\"}\n  /meta/legend/entries/database (id/label: \"Database\") must NOT have additional properties {\"additionalProperty\":\"description\"}\n  /meta/legend/entries/security (id/label: \"Utility\") must NOT have additional properties {\"additionalProperty\":\"description\"}\n  /meta/legend/entries/external (id/label: \"External Lib\") must NOT have additional properties {\"additionalProperty\":\"description\"}\n  /components/0/icon (id/label: \"web-client\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/1/icon (id/label: \"flask-app\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/1/sources/0 (id/label: \"flask-app\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/1/sources/0 (id/label: \"flask-app\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/2/sources/0 (id/label: \"db-module\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/2/sources/0 (id/label: \"db-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/3/icon (id/label: \"gps-module\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/3/sources/0 (id/label: \"gps-module\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/3/sources/0 (id/label: \"gps-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/4/sources/0 (id/label: \"sqlite-db\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/4/sources/0 (id/label: \"sqlite-db\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/5/icon (id/label: \"qr-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/6/icon (id/label: \"socket-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/7/icon (id/label: \"route-mgmt\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/7/sources/0 (id/label: \"route-mgmt\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/7/sources/0 (id/label: \"route-mgmt\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/8/icon (id/label: \"passenger-flow\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/8/sources/0 (id/label: \"passenger-flow\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/8/sources/0 (id/label: \"passenger-flow\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/9/icon (id/label: \"conductor-view\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/9/sources/0 (id/label: \"conductor-view\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/9/sources/0 (id/label: \"conductor-view\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/10/icon (id/label: \"vehicle-sim\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/10/sources/0 (id/label: \"vehicle-sim\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/10/sources/0 (id/label: \"vehicle-sim\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/11/icon (id/label: \"status-api\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/11/sources/0 (id/label: \"status-api\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/11/sources/0 (id/label: \"status-api\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/12/icon (id/label: \"tpl-index\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/12/sources/0 (id/label: \"tpl-index\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/12/sources/0 (id/label: \"tpl-index\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/13/icon (id/label: \"tpl-add-matatu\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/13/sources/0 (id/label: \"tpl-add-matatu\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/13/sources/0 (id/label: \"tpl-add-matatu\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/14/icon (id/label: \"tpl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/14/sources/0 (id/label: \"tpl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/14/sources/0 (id/label: \"tpl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/15/icon (id/label: \"tpl-add-stage\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/15/sources/0 (id/label: \"tpl-add-stage\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/15/sources/0 (id/label: \"tpl-add-stage\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/16/icon (id/label: \"tpl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/16/sources/0 (id/label: \"tpl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/16/sources/0 (id/label: \"tpl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/17/icon (id/label: \"tpl-passenger\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/17/sources/0 (id/label: \"tpl-passenger\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/17/sources/0 (id/label: \"tpl-passenger\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/18/icon (id/label: \"tpl-conductor\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/18/sources/0 (id/label: \"tpl-conductor\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/18/sources/0 (id/label: \"tpl-conductor\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/19/icon (id/label: \"tbl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/19/sources/0 (id/label: \"tbl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/19/sources/0 (id/label: \"tbl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/20/icon (id/label: \"tbl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/20/sources/0 (id/label: \"tbl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/20/sources/0 (id/label: \"tbl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/21/icon (id/label: \"tbl-passengers\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/21/sources/0 (id/label: \"tbl-passengers\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/21/sources/0 (id/label: \"tbl-passengers\") must NOT have additional properties {\"additionalProperty\":\"file\"}\n  /components/22/icon (id/label: \"tbl-locations\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}\n  /components/22/sources/0 (id/label: \"tbl-locations\") must have required property 'path' {\"missingProperty\":\"path\"}\n  /components/22/sources/0 (id/label: \"tbl-locations\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+        "diagnostics": [
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/meta/legend/entries/frontend (id/label: \"Template/View\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/meta/legend/entries/frontend",
+              "identity": "Template/View"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "description"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"description\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/meta/legend/entries/backend (id/label: \"Flask Route\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/meta/legend/entries/backend",
+              "identity": "Flask Route"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "description"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"description\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/meta/legend/entries/database (id/label: \"Database\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/meta/legend/entries/database",
+              "identity": "Database"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "description"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"description\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/meta/legend/entries/security (id/label: \"Utility\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/meta/legend/entries/security",
+              "identity": "Utility"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "description"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"description\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/meta/legend/entries/external (id/label: \"External Lib\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/meta/legend/entries/external",
+              "identity": "External Lib"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "description"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"description\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/0/icon (id/label: \"web-client\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/0/icon",
+              "identity": "web-client"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/1/icon (id/label: \"flask-app\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/1/icon",
+              "identity": "flask-app"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/1/sources/0 (id/label: \"flask-app\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/1/sources/0",
+              "identity": "flask-app"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/1/sources/0 (id/label: \"flask-app\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/1/sources/0",
+              "identity": "flask-app"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/2/sources/0 (id/label: \"db-module\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/2/sources/0",
+              "identity": "db-module"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/2/sources/0 (id/label: \"db-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/2/sources/0",
+              "identity": "db-module"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/3/icon (id/label: \"gps-module\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/3/icon",
+              "identity": "gps-module"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/3/sources/0 (id/label: \"gps-module\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/3/sources/0",
+              "identity": "gps-module"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/3/sources/0 (id/label: \"gps-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/3/sources/0",
+              "identity": "gps-module"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/4/sources/0 (id/label: \"sqlite-db\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/4/sources/0",
+              "identity": "sqlite-db"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/4/sources/0 (id/label: \"sqlite-db\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/4/sources/0",
+              "identity": "sqlite-db"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/5/icon (id/label: \"qr-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/5/icon",
+              "identity": "qr-lib"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/6/icon (id/label: \"socket-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/6/icon",
+              "identity": "socket-lib"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/7/icon (id/label: \"route-mgmt\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/7/icon",
+              "identity": "route-mgmt"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/7/sources/0 (id/label: \"route-mgmt\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/7/sources/0",
+              "identity": "route-mgmt"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/7/sources/0 (id/label: \"route-mgmt\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/7/sources/0",
+              "identity": "route-mgmt"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/8/icon (id/label: \"passenger-flow\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/8/icon",
+              "identity": "passenger-flow"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/8/sources/0 (id/label: \"passenger-flow\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/8/sources/0",
+              "identity": "passenger-flow"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/8/sources/0 (id/label: \"passenger-flow\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/8/sources/0",
+              "identity": "passenger-flow"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/9/icon (id/label: \"conductor-view\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/9/icon",
+              "identity": "conductor-view"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/9/sources/0 (id/label: \"conductor-view\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/9/sources/0",
+              "identity": "conductor-view"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/9/sources/0 (id/label: \"conductor-view\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/9/sources/0",
+              "identity": "conductor-view"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/10/icon (id/label: \"vehicle-sim\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/10/icon",
+              "identity": "vehicle-sim"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/10/sources/0 (id/label: \"vehicle-sim\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/10/sources/0",
+              "identity": "vehicle-sim"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/10/sources/0 (id/label: \"vehicle-sim\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/10/sources/0",
+              "identity": "vehicle-sim"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/11/icon (id/label: \"status-api\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/11/icon",
+              "identity": "status-api"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/11/sources/0 (id/label: \"status-api\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/11/sources/0",
+              "identity": "status-api"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/11/sources/0 (id/label: \"status-api\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/11/sources/0",
+              "identity": "status-api"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/12/icon (id/label: \"tpl-index\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/12/icon",
+              "identity": "tpl-index"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/12/sources/0 (id/label: \"tpl-index\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/12/sources/0",
+              "identity": "tpl-index"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/12/sources/0 (id/label: \"tpl-index\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/12/sources/0",
+              "identity": "tpl-index"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/13/icon (id/label: \"tpl-add-matatu\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/13/icon",
+              "identity": "tpl-add-matatu"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/13/sources/0 (id/label: \"tpl-add-matatu\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/13/sources/0",
+              "identity": "tpl-add-matatu"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/13/sources/0 (id/label: \"tpl-add-matatu\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/13/sources/0",
+              "identity": "tpl-add-matatu"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/14/icon (id/label: \"tpl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/14/icon",
+              "identity": "tpl-matatus"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/14/sources/0 (id/label: \"tpl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/14/sources/0",
+              "identity": "tpl-matatus"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/14/sources/0 (id/label: \"tpl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/14/sources/0",
+              "identity": "tpl-matatus"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/15/icon (id/label: \"tpl-add-stage\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/15/icon",
+              "identity": "tpl-add-stage"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/15/sources/0 (id/label: \"tpl-add-stage\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/15/sources/0",
+              "identity": "tpl-add-stage"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/15/sources/0 (id/label: \"tpl-add-stage\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/15/sources/0",
+              "identity": "tpl-add-stage"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/16/icon (id/label: \"tpl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/16/icon",
+              "identity": "tpl-stages"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/16/sources/0 (id/label: \"tpl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/16/sources/0",
+              "identity": "tpl-stages"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/16/sources/0 (id/label: \"tpl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/16/sources/0",
+              "identity": "tpl-stages"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/17/icon (id/label: \"tpl-passenger\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/17/icon",
+              "identity": "tpl-passenger"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/17/sources/0 (id/label: \"tpl-passenger\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/17/sources/0",
+              "identity": "tpl-passenger"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/17/sources/0 (id/label: \"tpl-passenger\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/17/sources/0",
+              "identity": "tpl-passenger"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/18/icon (id/label: \"tpl-conductor\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/18/icon",
+              "identity": "tpl-conductor"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/18/sources/0 (id/label: \"tpl-conductor\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/18/sources/0",
+              "identity": "tpl-conductor"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/18/sources/0 (id/label: \"tpl-conductor\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/18/sources/0",
+              "identity": "tpl-conductor"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/19/icon (id/label: \"tbl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/19/icon",
+              "identity": "tbl-matatus"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/19/sources/0 (id/label: \"tbl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/19/sources/0",
+              "identity": "tbl-matatus"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/19/sources/0 (id/label: \"tbl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/19/sources/0",
+              "identity": "tbl-matatus"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/20/icon (id/label: \"tbl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/20/icon",
+              "identity": "tbl-stages"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/20/sources/0 (id/label: \"tbl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/20/sources/0",
+              "identity": "tbl-stages"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/20/sources/0 (id/label: \"tbl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/20/sources/0",
+              "identity": "tbl-stages"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/21/icon (id/label: \"tbl-passengers\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/21/icon",
+              "identity": "tbl-passengers"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/21/sources/0 (id/label: \"tbl-passengers\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/21/sources/0",
+              "identity": "tbl-passengers"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/21/sources/0 (id/label: \"tbl-passengers\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/21/sources/0",
+              "identity": "tbl-passengers"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          },
+          {
+            "code": "schema/enum",
+            "severity": "error",
+            "message": "/components/22/icon (id/label: \"tbl-locations\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/22/icon",
+              "identity": "tbl-locations"
+            },
+            "evidence": {
+              "keyword": "enum",
+              "allowedValues": [
+                "calendar",
+                "clock",
+                "person",
+                "briefcase",
+                "flag",
+                "moon",
+                "frontend",
+                "backend",
+                "database",
+                "cloud",
+                "security",
+                "messagebus",
+                "external",
+                "start",
+                "active",
+                "waiting",
+                "success",
+                "failure",
+                "neutral",
+                "none"
+              ]
+            },
+            "supportedFixes": [
+              "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+            ]
+          },
+          {
+            "code": "schema/required",
+            "severity": "error",
+            "message": "/components/22/sources/0 (id/label: \"tbl-locations\") must have required property 'path' {\"missingProperty\":\"path\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/22/sources/0",
+              "identity": "tbl-locations"
+            },
+            "evidence": {
+              "keyword": "required",
+              "missingProperty": "path"
+            },
+            "supportedFixes": [
+              "add required property \"path\""
+            ]
+          },
+          {
+            "code": "schema/additionalProperties",
+            "severity": "error",
+            "message": "/components/22/sources/0 (id/label: \"tbl-locations\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+            "subject": {
+              "diagramType": "architecture",
+              "path": "/components/22/sources/0",
+              "identity": "tbl-locations"
+            },
+            "evidence": {
+              "keyword": "additionalProperties",
+              "additionalProperty": "file"
+            },
+            "supportedFixes": [
+              "remove unsupported property \"file\""
+            ]
+          }
+        ],
+        "provenance": "absent",
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      },
+      "execution": "embedded-in-deliver"
+    },
+    "deliver": {
+      "status": "not-run",
+      "execution": "blocked-by-validate"
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/frontend (id/label: \"Template/View\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/frontend",
+        "identity": "Template/View"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/backend (id/label: \"Flask Route\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/backend",
+        "identity": "Flask Route"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/database (id/label: \"Database\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/database",
+        "identity": "Database"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/security (id/label: \"Utility\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/security",
+        "identity": "Utility"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/meta/legend/entries/external (id/label: \"External Lib\") must NOT have additional properties {\"additionalProperty\":\"description\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/meta/legend/entries/external",
+        "identity": "External Lib"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "description"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"description\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/0/icon (id/label: \"web-client\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/0/icon",
+        "identity": "web-client"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/1/icon (id/label: \"flask-app\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/1/icon",
+        "identity": "flask-app"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/1/sources/0 (id/label: \"flask-app\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/1/sources/0",
+        "identity": "flask-app"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/1/sources/0 (id/label: \"flask-app\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/1/sources/0",
+        "identity": "flask-app"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/2/sources/0 (id/label: \"db-module\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/2/sources/0",
+        "identity": "db-module"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/2/sources/0 (id/label: \"db-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/2/sources/0",
+        "identity": "db-module"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/3/icon (id/label: \"gps-module\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/3/icon",
+        "identity": "gps-module"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/3/sources/0 (id/label: \"gps-module\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/3/sources/0",
+        "identity": "gps-module"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/3/sources/0 (id/label: \"gps-module\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/3/sources/0",
+        "identity": "gps-module"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/4/sources/0 (id/label: \"sqlite-db\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/4/sources/0",
+        "identity": "sqlite-db"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/4/sources/0 (id/label: \"sqlite-db\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/4/sources/0",
+        "identity": "sqlite-db"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/5/icon (id/label: \"qr-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/5/icon",
+        "identity": "qr-lib"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/6/icon (id/label: \"socket-lib\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/6/icon",
+        "identity": "socket-lib"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/7/icon (id/label: \"route-mgmt\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/7/icon",
+        "identity": "route-mgmt"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/7/sources/0 (id/label: \"route-mgmt\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/7/sources/0",
+        "identity": "route-mgmt"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/7/sources/0 (id/label: \"route-mgmt\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/7/sources/0",
+        "identity": "route-mgmt"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/8/icon (id/label: \"passenger-flow\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/8/icon",
+        "identity": "passenger-flow"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/8/sources/0 (id/label: \"passenger-flow\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/8/sources/0",
+        "identity": "passenger-flow"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/8/sources/0 (id/label: \"passenger-flow\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/8/sources/0",
+        "identity": "passenger-flow"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/9/icon (id/label: \"conductor-view\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/9/icon",
+        "identity": "conductor-view"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/9/sources/0 (id/label: \"conductor-view\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/9/sources/0",
+        "identity": "conductor-view"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/9/sources/0 (id/label: \"conductor-view\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/9/sources/0",
+        "identity": "conductor-view"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/10/icon (id/label: \"vehicle-sim\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/10/icon",
+        "identity": "vehicle-sim"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/10/sources/0 (id/label: \"vehicle-sim\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/10/sources/0",
+        "identity": "vehicle-sim"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/10/sources/0 (id/label: \"vehicle-sim\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/10/sources/0",
+        "identity": "vehicle-sim"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/11/icon (id/label: \"status-api\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/11/icon",
+        "identity": "status-api"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/11/sources/0 (id/label: \"status-api\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/11/sources/0",
+        "identity": "status-api"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/11/sources/0 (id/label: \"status-api\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/11/sources/0",
+        "identity": "status-api"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/12/icon (id/label: \"tpl-index\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/12/icon",
+        "identity": "tpl-index"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/12/sources/0 (id/label: \"tpl-index\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/12/sources/0",
+        "identity": "tpl-index"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/12/sources/0 (id/label: \"tpl-index\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/12/sources/0",
+        "identity": "tpl-index"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/13/icon (id/label: \"tpl-add-matatu\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/13/icon",
+        "identity": "tpl-add-matatu"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/13/sources/0 (id/label: \"tpl-add-matatu\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/13/sources/0",
+        "identity": "tpl-add-matatu"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/13/sources/0 (id/label: \"tpl-add-matatu\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/13/sources/0",
+        "identity": "tpl-add-matatu"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/14/icon (id/label: \"tpl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/14/icon",
+        "identity": "tpl-matatus"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/14/sources/0 (id/label: \"tpl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/14/sources/0",
+        "identity": "tpl-matatus"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/14/sources/0 (id/label: \"tpl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/14/sources/0",
+        "identity": "tpl-matatus"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/15/icon (id/label: \"tpl-add-stage\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/15/icon",
+        "identity": "tpl-add-stage"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/15/sources/0 (id/label: \"tpl-add-stage\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/15/sources/0",
+        "identity": "tpl-add-stage"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/15/sources/0 (id/label: \"tpl-add-stage\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/15/sources/0",
+        "identity": "tpl-add-stage"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/16/icon (id/label: \"tpl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/16/icon",
+        "identity": "tpl-stages"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/16/sources/0 (id/label: \"tpl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/16/sources/0",
+        "identity": "tpl-stages"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/16/sources/0 (id/label: \"tpl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/16/sources/0",
+        "identity": "tpl-stages"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/17/icon (id/label: \"tpl-passenger\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/17/icon",
+        "identity": "tpl-passenger"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/17/sources/0 (id/label: \"tpl-passenger\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/17/sources/0",
+        "identity": "tpl-passenger"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/17/sources/0 (id/label: \"tpl-passenger\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/17/sources/0",
+        "identity": "tpl-passenger"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/18/icon (id/label: \"tpl-conductor\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/18/icon",
+        "identity": "tpl-conductor"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/18/sources/0 (id/label: \"tpl-conductor\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/18/sources/0",
+        "identity": "tpl-conductor"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/18/sources/0 (id/label: \"tpl-conductor\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/18/sources/0",
+        "identity": "tpl-conductor"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/19/icon (id/label: \"tbl-matatus\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/19/icon",
+        "identity": "tbl-matatus"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/19/sources/0 (id/label: \"tbl-matatus\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/19/sources/0",
+        "identity": "tbl-matatus"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/19/sources/0 (id/label: \"tbl-matatus\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/19/sources/0",
+        "identity": "tbl-matatus"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/20/icon (id/label: \"tbl-stages\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/20/icon",
+        "identity": "tbl-stages"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/20/sources/0 (id/label: \"tbl-stages\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/20/sources/0",
+        "identity": "tbl-stages"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/20/sources/0 (id/label: \"tbl-stages\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/20/sources/0",
+        "identity": "tbl-stages"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/21/icon (id/label: \"tbl-passengers\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/21/icon",
+        "identity": "tbl-passengers"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/21/sources/0 (id/label: \"tbl-passengers\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/21/sources/0",
+        "identity": "tbl-passengers"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/21/sources/0 (id/label: \"tbl-passengers\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/21/sources/0",
+        "identity": "tbl-passengers"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    },
+    {
+      "code": "schema/enum",
+      "severity": "error",
+      "message": "/components/22/icon (id/label: \"tbl-locations\") must be equal to one of the allowed values {\"allowedValues\":[\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/22/icon",
+        "identity": "tbl-locations"
+      },
+      "evidence": {
+        "keyword": "enum",
+        "allowedValues": [
+          "calendar",
+          "clock",
+          "person",
+          "briefcase",
+          "flag",
+          "moon",
+          "frontend",
+          "backend",
+          "database",
+          "cloud",
+          "security",
+          "messagebus",
+          "external",
+          "start",
+          "active",
+          "waiting",
+          "success",
+          "failure",
+          "neutral",
+          "none"
+        ]
+      },
+      "supportedFixes": [
+        "choose one of [\"calendar\",\"clock\",\"person\",\"briefcase\",\"flag\",\"moon\",\"frontend\",\"backend\",\"database\",\"cloud\",\"security\",\"messagebus\",\"external\",\"start\",\"active\",\"waiting\",\"success\",\"failure\",\"neutral\",\"none\"]"
+      ]
+    },
+    {
+      "code": "schema/required",
+      "severity": "error",
+      "message": "/components/22/sources/0 (id/label: \"tbl-locations\") must have required property 'path' {\"missingProperty\":\"path\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/22/sources/0",
+        "identity": "tbl-locations"
+      },
+      "evidence": {
+        "keyword": "required",
+        "missingProperty": "path"
+      },
+      "supportedFixes": [
+        "add required property \"path\""
+      ]
+    },
+    {
+      "code": "schema/additionalProperties",
+      "severity": "error",
+      "message": "/components/22/sources/0 (id/label: \"tbl-locations\") must NOT have additional properties {\"additionalProperty\":\"file\"}",
+      "subject": {
+        "diagramType": "architecture",
+        "path": "/components/22/sources/0",
+        "identity": "tbl-locations"
+      },
+      "evidence": {
+        "keyword": "additionalProperties",
+        "additionalProperty": "file"
+      },
+      "supportedFixes": [
+        "remove unsupported property \"file\""
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.finalize.json",
+    "summaryReceipt": "/home/noble/Desktop/smart-matatu/.archify/architecture-smart-matatu-20261007-203000/architecture-smart-matatu.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "validate",
+  "finishedAt": "2026-10-07T17:31:19.682Z",
+  "durationMs": 805,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-07T04:13:24.185Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}
