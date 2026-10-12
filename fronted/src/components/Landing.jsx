@@ -24,7 +24,7 @@ function Landing(){
  <div className="space-y-4">
   
   <a
-    href="/passenger"
+    href="http://127.0.0.1:5000/passenger/1"
     className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-5 text-left"
   >
     <div className="flex items-center gap-4">
@@ -41,7 +41,7 @@ function Landing(){
 
   
   <a
-    href="/conductor"
+    href="http://127.0.0.1:5000/conductor/1"
     className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-5 text-left"
   >
     <div className="flex items-center gap-4">
@@ -58,7 +58,7 @@ function Landing(){
 
   
   <a
-    href="/admin"
+    href="http://127.0.0.1:5000/admin"
     className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-5 text-left"
   >
     <div className="flex items-center gap-4">
