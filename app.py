@@ -436,13 +436,19 @@ def vehicle_status(matatu_id):
             eta = None
 
         else:
-
-            distance = calculate_distance(
+            distance = haversine_distance_m(
                 matatu_latitude,
                 matatu_longitude,
                 passenger["latitude"],
-                passenger["longitude"]
+                passenger["longitude"],
             )
+
+            # distance = calculate_distance(
+            #     matatu_latitude,
+            #     matatu_longitude,
+            #     passenger["latitude"],
+            #     passenger["longitude"]
+            # )
 
             remaining_distance_km = distance / 1000
 
@@ -841,12 +847,19 @@ def gps_test():
     stage_latitude = stage["latitude"]
     stage_longitude = stage["longitude"]
 
-    distance = calculate_distance(
+    distance = haversine_distance_m(
         matatu_latitude,
         matatu_longitude,
         stage_latitude,
         stage_longitude
     )
+
+    # distance = calculate_distance(
+    #     matatu_latitude,
+    #     matatu_longitude,
+    #     stage_latitude,
+    #     stage_longitude
+    # )
 
     return f"""
         <h1>GPS DATABASE TEST</h1>
