@@ -76,3 +76,15 @@ def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
 
 
 print(haversine_distance_km(-0.756750, 34.598330, -0.680482, 34.777061))
+
+STAGE_ARRIVAL_RADIUS_M = 100
+
+def is_near_stage(vehicle_lat: float, vehicle_lon: float, stage) -> bool:
+    """
+    Cheap proximity check -- call this on every GPS ping to decide whether
+    the vehicle has reached `stage`. Pure Haversine, no network call.
+    """
+    distance = haversine_distance_m(
+        vehicle_lat, vehicle_lon, float(stage.latitude), float(stage.longitude)
+    )
+    return distance <= STAGE_ARRIVAL_RADIUS_M

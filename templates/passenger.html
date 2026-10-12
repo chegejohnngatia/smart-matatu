@@ -1,17 +1,8 @@
+{% extends "base.html" %}
 
-<!DOCTYPE html>
+{% block title %}Smart Matatu Passenger{% endblock %}
 
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Smart Matatu Passenger</title>
-
+{% block extra_head %}
     <style>
 
         body {
@@ -39,10 +30,9 @@
         }
 
     </style>
+{% endblock %}
 
-</head>
-
-<body>
+{% block content %}
 
     <h1>SMART MATATU</h1>
 
@@ -223,7 +213,5 @@
 
     </script>
 
-</body>
-
-</html>
+{% endblock %}
 

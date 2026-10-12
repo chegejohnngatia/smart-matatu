@@ -1,16 +1,8 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
 
-<html lang="en">
+{% block title %}Conductor Dashboard{% endblock %}
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Conductor Dashboard</title>
-
+{% block extra_head %}
     <style>
 
         body {
@@ -52,10 +44,9 @@
         }
 
     </style>
+{% endblock %}
 
-</head>
-
-<body>
+{% block content %}
 
     <h1>CONDUCTOR DASHBOARD</h1>
 
@@ -134,6 +125,4 @@
         Back to Dashboard
     </a>
 
-</body>
-
-</html>
+{% endblock %}
