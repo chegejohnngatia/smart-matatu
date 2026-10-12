@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from database import init_db, get_db_connection
-from gps import calculate_distance
+from gps import calculate_distance, calculate_route_distance
 import socket
 import qrcode
 import io
@@ -401,6 +401,17 @@ def vehicle_status(matatu_id):
     # Get current matatu speed
     current_speed = location["speed"]
 
+    # Get all stages on the matatu route
+    route_stages = connection.execute(
+        """
+        SELECT *
+        FROM stages
+        WHERE route_name = ?
+        ORDER BY sequence_number
+        """,
+        (matatu["route_name"],)
+    ).fetchall()
+
     # Get passengers and their destinations
     passengers = connection.execute(
         """
@@ -437,11 +448,20 @@ def vehicle_status(matatu_id):
 
         else:
 
-            distance = calculate_distance(
+            # Get only the stages between the current position
+            # and the passenger's destination
+            remaining_stages = [
+                stage
+                for stage in route_stages
+                if current_stage_sequence < stage["sequence_number"]
+                and stage["sequence_number"] <= passenger["destination_sequence"]
+            ]
+
+            # Calculate distance by following the route stages
+            distance = calculate_route_distance(
                 matatu_latitude,
                 matatu_longitude,
-                passenger["latitude"],
-                passenger["longitude"]
+                remaining_stages
             )
 
             remaining_distance_km = distance / 1000

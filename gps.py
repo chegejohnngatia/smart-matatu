@@ -39,3 +39,29 @@ def calculate_distance(
     distance = earth_radius * c
 
     return distance
+
+def calculate_route_distance(current_latitude, current_longitude, stages):
+    """
+    Calculate remaining distance by following the stage sequence.
+    """
+
+    total_distance = 0
+
+    previous_latitude = current_latitude
+    previous_longitude = current_longitude
+
+    for stage in stages:
+
+        distance = calculate_distance(
+            previous_latitude,
+            previous_longitude,
+            stage["latitude"],
+            stage["longitude"]
+        )
+
+        total_distance += distance
+
+        previous_latitude = stage["latitude"]
+        previous_longitude = stage["longitude"]
+
+    return total_distance
