@@ -1,16 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for,send_from_directory
 from database import init_db, get_db_connection
 from gps import calculate_distance
 import socket
 import qrcode
 import io
 import base64
+import os
 
+FRONTEND_DIST = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "fronted",
+    "dist"
+)
 
-
-
-
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=os.path.join(FRONTEND_DIST, "assets"),
+    static_url_path="/assets"
+)
 
 
 def get_local_ip():
@@ -31,6 +38,11 @@ def get_local_ip():
 
 @app.route("/")
 def home():
+    return send_from_directory(FRONTEND_DIST, "index.html")
+
+
+@app.route("/admin")
+def admin():
     return render_template("index.html")
 
 
