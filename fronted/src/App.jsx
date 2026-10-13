@@ -1,8 +1,10 @@
+
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Landing from './components/Landing'
 import AdminLayout from './components/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import ResourcePage from './pages/admin/ResourcePage'
+import AdminDashboard from './components/AdminDashboard'
 
 function RolePlaceholder({ role }) {
   return (
@@ -38,10 +40,20 @@ export default function App() {
         <Route path="requests" element={<ResourcePage />} />
       </Route>
 
-      <Route path="/passenger" element={<RolePlaceholder role="Passenger" />} />
-      <Route path="/conductor" element={<RolePlaceholder role="Conductor" />} />
+      <Route path="/admin-prototype" element={<AdminDashboard />} />
+
+      <Route
+        path="/passenger"
+        element={<RolePlaceholder role="Passenger" />}
+      />
+
+      <Route
+        path="/conductor"
+        element={<RolePlaceholder role="Conductor" />}
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
+
