@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Bus, LayoutDashboard, MapPin, ClipboardList,
-  History, Menu, Bell, ShieldCheck, ChevronRight, X
+  History, Menu, Bell, ShieldCheck, ChevronRight, X, LogOut
 } from 'lucide-react'
 
 const links = [
@@ -14,6 +15,13 @@ const links = [
 
 export default function ConductorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { currentUser, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -82,7 +90,15 @@ export default function ConductorLayout() {
               Manage your assigned journey and review passenger destination requests.
             </p>
           </div>
-          <p className="mt-5 text-center text-xs text-slate-500">Smart Matatu · Demo</p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-300"
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
+          <p className="mt-4 text-center text-xs text-slate-500">Smart Matatu · Demo</p>
         </div>
       </aside>
 
@@ -115,8 +131,8 @@ export default function ConductorLayout() {
               C
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold">Demo Conductor</p>
-              <p className="text-xs text-slate-500">Demo session</p>
+              <p className="text-sm font-semibold">{currentUser?.name || "Conductor"}</p>
+              <p className="text-xs text-slate-500">{currentUser?.email || "Demo session"}</p>
             </div>
           </div>
         </header>

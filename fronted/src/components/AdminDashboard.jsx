@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Activity, AlertTriangle, ArrowUpRight, BusFront, CalendarDays, ChevronDown, CircleHelp, Gauge, LayoutDashboard, LogOut, MapPin, Menu, MoreHorizontal, Navigation, Plus, Route as RouteIcon, Search, Settings, ShieldCheck, Users, X, Bell } from 'lucide-react';
 import { demoDashboardData } from '../services/dashboardApi';
 import './admin-dashboard.css';
@@ -62,12 +64,20 @@ function UsersPage({ data, search, setSearch }) {
 }
 
 export default function AdminDashboard() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
+
   const [page,setPage]=useState('overview'), [search,setSearch]=useState(''), [menuOpen,setMenuOpen]=useState(false);
   const data=useMemo(()=>demoDashboardData,[]); const [title,description]=titles[page];
   const go=id=>{setPage(id);setSearch('');setMenuOpen(false);};
   return <div className="admin-shell">
     {menuOpen&&<button className="mobile-overlay" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}
-    <aside className={`admin-sidebar ${menuOpen?'open':''}`}><div className="brand"><span className="brand-mark"><BusFront size={22}/></span><div><b>Matatu Smart</b><small>ADMIN CONSOLE</small></div><button className="mobile-close icon-button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}><X size={18}/></button></div><p className="nav-label">WORKSPACE</p><nav>{nav.map(({id,label,icon:Icon})=><button key={id} className={`nav-item ${page===id?'selected':''}`} onClick={()=>go(id)}><Icon size={18}/><span>{label}</span>{id==='trips'&&<i className="nav-count">{data.stats.activeTrips}</i>}</button>)}</nav><div className="sidebar-spacer"/><div className="help-card"><CircleHelp size={20}/><b>Need assistance?</b><p>Check the operations guide or contact the system team.</p><button onClick={()=>window.alert('Help content will be added later.')}>Open help centre →</button></div><div className="sidebar-bottom"><button className="nav-item" onClick={()=>window.alert('Settings will be added in a later phase.')}><Settings size={18}/><span>Settings</span></button><button className="nav-item" onClick={()=>window.alert('Connect logout to authentication before enabling it.')}><LogOut size={18}/><span>Sign out</span></button></div></aside>
+    <aside className={`admin-sidebar ${menuOpen?'open':''}`}><div className="brand"><span className="brand-mark"><BusFront size={22}/></span><div><b>Matatu Smart</b><small>ADMIN CONSOLE</small></div><button className="mobile-close icon-button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}><X size={18}/></button></div><p className="nav-label">WORKSPACE</p><nav>{nav.map(({id,label,icon:Icon})=><button key={id} className={`nav-item ${page===id?'selected':''}`} onClick={()=>go(id)}><Icon size={18}/><span>{label}</span>{id==='trips'&&<i className="nav-count">{data.stats.activeTrips}</i>}</button>)}</nav><div className="sidebar-spacer"/><div className="help-card"><CircleHelp size={20}/><b>Need assistance?</b><p>Check the operations guide or contact the system team.</p><button onClick={()=>window.alert('Help content will be added later.')}>Open help centre →</button></div><div className="sidebar-bottom"><button className="nav-item" onClick={()=>window.alert('Settings will be added in a later phase.')}><Settings size={18}/><span>Settings</span></button><button className="nav-item" onClick={handleLogout}><LogOut size={18}/><span>Sign out</span></button></div></aside>
     <main className="admin-main"><header className="topbar"><button className="mobile-menu icon-button" aria-label="Open menu" onClick={()=>setMenuOpen(true)}><Menu size={21}/></button><div className="breadcrumb"><span>Smart Matatu</span><i>/</i><b>{title}</b></div><div className="top-actions"><span className="environment"><i/> Demo environment</span><button className="icon-button notification" aria-label="Notifications" onClick={()=>go('trips')}><Bell size={18}/></button><div className="top-divider"/><div className="admin-user"><span>AD</span><div><b>Administrator</b><small>System Admin</small></div><ChevronDown size={14}/></div></div></header>
       <div className="page-content"><div className="page-heading"><div><small>SMART MATATU / ADMIN</small><h1>{title}</h1><p>{description}</p></div>{page==='overview'&&<button className="secondary" onClick={()=>window.alert('Date filters will be connected to reporting APIs.')}><CalendarDays size={15}/> Today <ChevronDown size={14}/></button>}</div>
         {page==='overview'&&<Overview data={data} go={go}/>} {page==='fleet'&&<Fleet data={data} search={search} setSearch={setSearch}/>} {page==='routes'&&<RoutesPage data={data} search={search} setSearch={setSearch}/>} {page==='trips'&&<Trips data={data} search={search} setSearch={setSearch}/>} {page==='users'&&<UsersPage data={data} search={search} setSearch={setSearch}/>}
