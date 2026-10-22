@@ -9,7 +9,6 @@ import ConductorLayout from './components/conductor/ConductorLayout'
 import ConductorDashboard from './pages/conductor/ConductorDashboard'
 import ConductorSectionPage from './pages/conductor/ConductorSectionPage'
 
-// Your Passenger Component Import
 import Passenger from './pages/Passenger'
 
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -38,7 +37,6 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<RoleHome />} />
 
-      {/* Public passenger routes linking to YOUR custom layout screen */}
       <Route path="/passenger" element={<Passenger />} />
       <Route path="/passenger/:matatuId" element={<Passenger />} />
 
