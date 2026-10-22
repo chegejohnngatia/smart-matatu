@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Bus,
   LayoutDashboard,
@@ -10,20 +10,31 @@ import {
   Bell,
   ShieldCheck,
   ChevronRight,
+  UserPlus,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
 
 const navigation = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Matatus', path: '/admin/matatus', icon: Bus },
   { label: 'Routes', path: '/admin/routes', icon: Map },
   { label: 'Users', path: '/admin/users', icon: Users },
+  { label: 'Create User', path: '/admin/create-user', icon: UserPlus },
   { label: 'Trips', path: '/admin/trips', icon: Route },
   { label: 'Requests', path: '/admin/requests', icon: ClipboardList },
 ]
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { currentUser, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -90,7 +101,15 @@ export default function AdminLayout() {
               Administrative controls for the Smart Matatu platform.
             </p>
           </div>
-          <p className="mt-5 text-center text-xs text-slate-500">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-300"
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
+          <p className="mt-4 text-center text-xs text-slate-500">
             Smart Matatu · Development
           </p>
         </div>
@@ -126,8 +145,8 @@ export default function AdminLayout() {
               A
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold">Administrator</p>
-              <p className="text-xs text-slate-500">Demo session</p>
+              <p className="text-sm font-semibold">{currentUser?.name || "Administrator"}</p>
+              <p className="text-xs text-slate-500">{currentUser?.email || "Demo session"}</p>
             </div>
           </div>
         </header>
