@@ -7,7 +7,7 @@ latitude1 = -0.680482
 longitude1 = 34.777061
 
 
-distance = calculate_distance(
+distance = haversine_distance_m(
     latitude,
     longitude,
     latitude1,
