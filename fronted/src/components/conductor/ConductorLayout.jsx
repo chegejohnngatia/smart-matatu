@@ -1,22 +1,54 @@
+
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-  Bus, LayoutDashboard, MapPin, ClipboardList,
-  History, Menu, Bell, ShieldCheck, ChevronRight, X, LogOut
+  Bus,
+  MapPin,
+  Wallet,
+  ArrowLeftRight,
+  BellRing,
+  Menu,
+  ShieldCheck,
+  ChevronRight,
+  X,
+  LogOut,
+  Home,
 } from 'lucide-react'
 
 const links = [
-  { label: 'Dashboard', path: '/conductor', icon: LayoutDashboard, end: true },
-  { label: 'Current Trip', path: '/conductor/trip', icon: Bus },
-  { label: 'Destination Requests', path: '/conductor/requests', icon: MapPin },
-  { label: 'Trip History', path: '/conductor/history', icon: History },
+  {
+    label: 'Destinations',
+    path: '/conductor',
+    icon: MapPin,
+    end: true,
+  },
+  {
+    label: 'Balances',
+    path: '/conductor/balances',
+    icon: Wallet,
+  },
+  {
+    label: 'Destination Change Requests',
+    path: '/conductor/requests',
+    icon: ArrowLeftRight,
+  },
+  {
+    label: 'Emergency Alerts',
+    path: '/conductor/emergency-alerts',
+    icon: BellRing,
+  },
 ]
 
 export default function ConductorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+
+  function handleHome() {
+    setSidebarOpen(false)
+    navigate('/')
+  }
 
   function handleLogout() {
     logout()
@@ -34,17 +66,23 @@ export default function ConductorLayout() {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-950 text-white transition-transform md:translate-x-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-950 text-white transition-transform md:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
             <Bus size={22} />
           </div>
+
           <div>
-            <p className="text-lg font-bold">Matatu <span className="text-emerald-400">Smart</span></p>
+            <p className="text-lg font-bold">
+              Matatu <span className="text-emerald-400">Smart</span>
+            </p>
             <p className="text-xs text-slate-400">Conductor workspace</p>
           </div>
+
           <button
             type="button"
             aria-label="Close menu"
@@ -55,10 +93,22 @@ export default function ConductorLayout() {
           </button>
         </div>
 
+        <div className="px-3 pt-4">
+          <button
+            type="button"
+            onClick={handleHome}
+            className="flex w-full items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/15 px-3 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-600 hover:text-white"
+          >
+            <Home size={19} />
+            <span>Home</span>
+          </button>
+        </div>
+
         <nav className="space-y-1 px-3 pt-7">
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
             My workspace
           </p>
+
           {links.map(({ label, path, icon: Icon, end }) => (
             <NavLink
               key={path}
@@ -74,8 +124,8 @@ export default function ConductorLayout() {
               }
             >
               <Icon size={19} />
-              <span>{label}</span>
-              <ChevronRight size={15} className="ml-auto opacity-50" />
+              <span className="flex-1">{label}</span>
+              <ChevronRight size={15} className="opacity-50" />
             </NavLink>
           ))}
         </nav>
@@ -86,19 +136,34 @@ export default function ConductorLayout() {
               <ShieldCheck size={18} className="text-emerald-400" />
               Conductor access
             </div>
+
             <p className="text-xs leading-5 text-slate-400">
-              Manage your assigned journey and review passenger destination requests.
+              Manage passenger destinations, balances, destination-change
+              requests, and emergency alerts.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleHome}
+            className="mt-4 flex w-full items-center gap-3 rounded-xl bg-emerald-600/10 px-3 py-3 text-sm font-medium text-emerald-300 transition hover:bg-emerald-600 hover:text-white"
+          >
+            <Home size={18} />
+            Home
+          </button>
+
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-300"
+            className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
           >
             <LogOut size={18} />
             Sign out
           </button>
-          <p className="mt-4 text-center text-xs text-slate-500">Smart Matatu · Demo</p>
+
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Smart Matatu
+          </p>
         </div>
       </aside>
 
@@ -109,30 +174,29 @@ export default function ConductorLayout() {
               type="button"
               aria-label="Toggle navigation"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="rounded-lg p-2 hover:bg-slate-100 md:hidden"
+              className="rounded-lg p-2 transition hover:bg-slate-100 md:hidden"
             >
               <Menu size={22} />
             </button>
+
             <div>
               <p className="text-sm text-slate-500">Smart Matatu</p>
-              <h1 className="text-lg font-bold">Conductor portal</h1>
+              <h1 className="text-lg font-bold">Conductor workspace</h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50"
-            >
-              <Bell size={19} />
-            </button>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
-              C
+              {(currentUser?.name || 'Conductor').charAt(0).toUpperCase()}
             </div>
+
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold">{currentUser?.name || "Conductor"}</p>
-              <p className="text-xs text-slate-500">{currentUser?.email || "Demo session"}</p>
+              <p className="text-sm font-semibold">
+                {currentUser?.name || 'Conductor'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {currentUser?.email || 'Conductor session'}
+              </p>
             </div>
           </div>
         </header>

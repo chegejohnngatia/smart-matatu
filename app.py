@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for,send_from_directory
+from flask import Flask, render_template, request, redirect, url_for,send_from_directory, jsonify
 from database import init_db, get_db_connection
 from gps import calculate_distance
 import socket
@@ -20,6 +20,29 @@ app = Flask(
 )
 
 
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin")
+
+    allowed_origins = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    }
+
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = (
+            "GET, POST, OPTIONS"
+        )
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type"
+        )
+        response.headers["Vary"] = "Origin"
+
+    return response
+
+
 def get_local_ip():
 
     socket_connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -36,14 +59,183 @@ def get_local_ip():
 
     return local_ip
 
+
+
+
+def check_proximity_alerts(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        location = connection.execute(
+            """
+            SELECT latitude, longitude
+            FROM matatu_locations
+            WHERE matatu_id = ?
+            """,
+            (matatu_id,)
+        ).fetchone()
+
+        if location is None:
+            return 0
+
+        passengers = connection.execute(
+            """
+            SELECT
+                pd.id AS passenger_destination_id,
+                pd.passenger_token,
+                s.name AS destination_name,
+                s.latitude AS destination_latitude,
+                s.longitude AS destination_longitude,
+                pb.id AS balance_id,
+                pb.status AS balance_status
+            FROM passenger_destinations pd
+            JOIN stages s
+                ON s.id = pd.destination_stage_id
+            JOIN passenger_balances pb
+                ON pb.passenger_destination_id = pd.id
+               AND pb.matatu_id = pd.matatu_id
+            WHERE pd.matatu_id = ?
+              AND pd.status = 'waiting'
+              AND pb.status IN (
+                  'pending',
+                  'awaiting_confirmation'
+              )
+            """,
+            (matatu_id,)
+        ).fetchall()
+
+        alerts_created = 0
+
+        for passenger in passengers:
+            # Skip destinations without coordinates.
+            if (
+                passenger["destination_latitude"] is None
+                or passenger["destination_longitude"] is None
+            ):
+                continue
+
+            distance = calculate_distance(
+                location["latitude"],
+                location["longitude"],
+                passenger["destination_latitude"],
+                passenger["destination_longitude"]
+            )
+
+            if distance > 500:
+                continue
+
+            # A recorded but unconfirmed payment needs a
+            # passenger reminder, not a conductor alert.
+            if passenger["balance_status"] == "awaiting_confirmation":
+                existing_notification = connection.execute(
+                    """
+                    SELECT id
+                    FROM passenger_notifications
+                    WHERE balance_id = ?
+                      AND notification_type = 'payment_reminder'
+                    LIMIT 1
+                    """,
+                    (passenger["balance_id"],)
+                ).fetchone()
+
+                if existing_notification:
+                    continue
+
+                connection.execute(
+                    """
+                    INSERT INTO passenger_notifications (
+                        matatu_id,
+                        passenger_destination_id,
+                        balance_id,
+                        notification_type,
+                        message
+                    )
+                    VALUES (?, ?, ?, 'payment_reminder', ?)
+                    """,
+                    (
+                        matatu_id,
+                        passenger["passenger_destination_id"],
+                        passenger["balance_id"],
+                        (
+                            f"Passenger {passenger['passenger_token']}, "
+                            f"your destination "
+                            f"{passenger['destination_name']} is within "
+                            f"500 metres. Please confirm receipt of "
+                            f"your recorded payment."
+                        )
+                    )
+                )
+
+                continue
+
+            # Pending balances retain the existing conductor
+            # proximity-alert behaviour.
+            existing_alert = connection.execute(
+                """
+                SELECT id
+                FROM emergency_alerts
+                WHERE passenger_destination_id = ?
+                  AND alert_type = 'proximity'
+                """,
+                (passenger["passenger_destination_id"],)
+            ).fetchone()
+
+            if existing_alert:
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO emergency_alerts (
+                    matatu_id,
+                    passenger_destination_id,
+                    alert_type,
+                    message
+                )
+                VALUES (?, ?, 'proximity', ?)
+                """,
+                (
+                    matatu_id,
+                    passenger["passenger_destination_id"],
+                    (
+                        f"Passenger {passenger['passenger_token']} "
+                        f"has an unpaid balance and is within 500 "
+                        f"metres of destination "
+                        f"{passenger['destination_name']}."
+                    )
+                )
+            )
+
+            alerts_created += 1
+
+        connection.commit()
+        return alerts_created
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to check proximity alerts for matatu %s.",
+            matatu_id
+        )
+        raise
+
+    finally:
+        connection.close()
+
+
+
 @app.route("/")
-def home():
+@app.route("/admin")
+@app.route("/admin/<path:frontend_path>")
+@app.route("/conductor")
+@app.route("/conductor/<path:frontend_path>")
+@app.route("/passenger")
+@app.route("/passenger/<path:frontend_path>")
+@app.route("/login")
+@app.route("/home")
+@app.route("/admin-prototype")
+def serve_react_app(frontend_path=None):
     return send_from_directory(FRONTEND_DIST, "index.html")
 
-
-@app.route("/admin")
-def admin():
-    return render_template("index.html")
 
 
 @app.route("/add-matatu", methods=["GET", "POST"])
@@ -69,6 +261,898 @@ def add_matatu():
         return redirect(url_for("matatus"))
 
     return render_template("add_matatu.html")
+
+
+@app.route("/api/conductor/dashboard/<int:matatu_id>", methods=["GET"])
+def conductor_dashboard_api(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        # Get the actual vehicle and route.
+        matatu = connection.execute(
+            """
+            SELECT id, registration_number, route_name
+            FROM matatus
+            WHERE id = ?
+            """,
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return jsonify({
+                "error": "Vehicle not found."
+            }), 404
+
+        # Get actual passengers and their destinations.
+        # Stage sequence determines the order, not alphabetical order.
+        rows = connection.execute(
+            """
+            SELECT
+                pd.id AS passenger_id,
+                pd.passenger_token,
+                pd.destination_stage_id,
+                s.name AS destination_name,
+                s.sequence_number
+            FROM passenger_destinations AS pd
+            LEFT JOIN stages AS s
+                ON s.id = pd.destination_stage_id
+            WHERE pd.matatu_id = ?
+            ORDER BY
+                CASE WHEN s.sequence_number IS NULL THEN 1 ELSE 0 END,
+                s.sequence_number ASC,
+                pd.id ASC
+            """,
+            (matatu_id,)
+        ).fetchall()
+
+        passengers = [
+            {
+                "id": row["passenger_id"],
+                "passenger_id": row["passenger_token"],
+                "destination_stage_id": row["destination_stage_id"],
+                "destination": row["destination_name"] or "Unknown destination",
+                "stage_sequence": row["sequence_number"]
+            }
+            for row in rows
+        ]
+
+        response = jsonify({
+            "vehicle": {
+                "id": matatu["id"],
+                "registration_number": matatu["registration_number"],
+                "route_name": matatu["route_name"]
+            },
+            "passenger_count": len(passengers),
+            "passengers": passengers
+        })
+
+        # Permit requests from the local React development server.
+        origin = request.headers.get("Origin")
+        allowed_origins = {
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        }
+
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+
+        return response
+
+    finally:
+        connection.close()
+
+
+# ---------------- CONDUCTOR EMERGENCY ALERT API ----------------
+
+
+@app.route("/api/conductor/emergency-alerts/<int:matatu_id>", methods=["GET"])
+def get_conductor_emergency_alerts(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        matatu = connection.execute(
+            "SELECT id FROM matatus WHERE id = ?",
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return jsonify({"error": "Vehicle not found."}), 404
+
+        rows = connection.execute(
+            """
+            SELECT
+                ea.id AS alert_id,
+                ea.passenger_destination_id AS journey_id,
+                pd.passenger_token AS passenger_id,
+                ea.alert_type,
+                ea.message,
+                ea.status,
+                ea.created_at,
+                ea.acknowledged_at
+            FROM emergency_alerts AS ea
+            JOIN passenger_destinations AS pd
+                ON pd.id = ea.passenger_destination_id
+            WHERE ea.matatu_id = ?
+            ORDER BY
+                CASE WHEN ea.status = 'active' THEN 0 ELSE 1 END,
+                ea.created_at DESC,
+                ea.id DESC
+            """,
+            (matatu_id,)
+        ).fetchall()
+
+        alerts = [dict(row) for row in rows]
+
+        active_alerts = [
+            alert for alert in alerts
+            if alert["status"] == "active"
+        ]
+
+        history = [
+            alert for alert in alerts
+            if alert["status"] == "acknowledged"
+        ]
+
+        return jsonify({
+            "unresolved_count": len(active_alerts),
+            "active_alerts": active_alerts,
+            "history": history
+        }), 200
+
+    except Exception:
+        app.logger.exception(
+            "Failed to retrieve conductor emergency alerts."
+        )
+        return jsonify({
+            "error": "Could not retrieve emergency alerts."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+# ---------------- END CONDUCTOR EMERGENCY ALERT API ----------------
+
+
+
+@app.route(
+    "/api/conductor/emergency-alerts/<int:alert_id>/acknowledge",
+    methods=["POST"]
+)
+def acknowledge_emergency_alert(alert_id):
+    data = request.get_json(silent=True) or {}
+
+    matatu_id = data.get("matatu_id")
+
+    try:
+        matatu_id = int(matatu_id)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "A valid vehicle ID is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        alert = connection.execute(
+            """
+            SELECT id, status
+            FROM emergency_alerts
+            WHERE id = ? AND matatu_id = ?
+            """,
+            (alert_id, matatu_id)
+        ).fetchone()
+
+        if alert is None:
+            connection.rollback()
+            return jsonify({
+                "error": "Alert not found for this vehicle."
+            }), 404
+
+        if alert["status"] != "active":
+            connection.rollback()
+            return jsonify({
+                "error": "This alert has already been acknowledged."
+            }), 409
+
+        cursor = connection.execute(
+            """
+            UPDATE emergency_alerts
+            SET status = 'acknowledged',
+                acknowledged_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND matatu_id = ?
+              AND status = 'active'
+            """,
+            (alert_id, matatu_id)
+        )
+
+        if cursor.rowcount != 1:
+            connection.rollback()
+            return jsonify({
+                "error": "Acknowledgement failed. Please refresh and retry."
+            }), 409
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Alert acknowledged. It remains available in history.",
+            "alert_id": alert_id,
+            "status": "acknowledged",
+            "balance_changed": False,
+            "issue_resolved": False
+        }), 200
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Failed to acknowledge emergency alert.")
+        return jsonify({
+            "error": "Could not acknowledge the emergency alert."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+# ---------------- PASSENGER EMERGENCY ISSUE API ----------------
+
+
+@app.route(
+    "/api/passenger/journeys/<int:journey_id>/emergency-issues",
+    methods=["POST"]
+)
+def create_passenger_emergency_issue(journey_id):
+    data = request.get_json(silent=True) or {}
+
+    passenger_id = data.get("passenger_id")
+    issue_description = data.get("issue_description")
+
+    if not isinstance(passenger_id, str) or not passenger_id.strip():
+        return jsonify({
+            "error": "A valid passenger ID is required."
+        }), 400
+
+    if not isinstance(issue_description, str) or not issue_description.strip():
+        return jsonify({
+            "error": "Please provide a description of the issue."
+        }), 400
+
+    passenger_id = passenger_id.strip().upper()
+    issue_description = issue_description.strip()
+
+    if len(issue_description) > 1000:
+        return jsonify({
+            "error": "The issue description must not exceed 1000 characters."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        journey = connection.execute(
+            """
+            SELECT id, matatu_id, passenger_token
+            FROM passenger_destinations
+            WHERE id = ?
+              AND UPPER(passenger_token) = ?
+            """,
+            (journey_id, passenger_id)
+        ).fetchone()
+
+        if journey is None:
+            connection.rollback()
+            return jsonify({
+                "error": "Journey not found for this passenger."
+            }), 404
+
+        proximity_alert = connection.execute(
+            """
+            SELECT id
+            FROM emergency_alerts
+            WHERE passenger_destination_id = ?
+              AND alert_type = 'proximity'
+            LIMIT 1
+            """,
+            (journey_id,)
+        ).fetchone()
+
+        if proximity_alert:
+            connection.rollback()
+            return jsonify({
+                "error": (
+                    "A proximity alert has already been raised "
+                    "for this journey."
+                ),
+                "existing_alert_id": proximity_alert["id"]
+            }), 409
+
+        existing_issue = connection.execute(
+            """
+            SELECT id, status
+            FROM emergency_alerts
+            WHERE passenger_destination_id = ?
+              AND alert_type = 'passenger_issue'
+            LIMIT 1
+            """,
+            (journey_id,)
+        ).fetchone()
+
+        if existing_issue:
+            connection.rollback()
+            return jsonify({
+                "error": (
+                    "An issue alert has already been raised "
+                    "for this journey."
+                ),
+                "existing_alert_id": existing_issue["id"],
+                "status": existing_issue["status"]
+            }), 409
+
+        cursor = connection.execute(
+            """
+            INSERT INTO emergency_alerts (
+                matatu_id,
+                passenger_destination_id,
+                alert_type,
+                message
+            )
+            VALUES (?, ?, 'passenger_issue', ?)
+            """,
+            (
+                journey["matatu_id"],
+                journey_id,
+                issue_description
+            )
+        )
+
+        alert_id = cursor.lastrowid
+        connection.commit()
+
+        return jsonify({
+            "message": "Your issue has been reported to the conductor.",
+            "alert_id": alert_id,
+            "journey_id": journey_id,
+            "alert_type": "passenger_issue",
+            "status": "active"
+        }), 201
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to create passenger emergency issue."
+        )
+        return jsonify({
+            "error": "Could not submit the issue. Please try again."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+# ---------------- END PASSENGER EMERGENCY ISSUE API ----------------
+
+
+
+# ---------------- PASSENGER BALANCE API ----------------
+
+
+@app.route("/api/conductor/balances/<int:matatu_id>", methods=["GET"])
+def get_conductor_balances(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        matatu = connection.execute(
+            "SELECT id FROM matatus WHERE id = ?",
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return jsonify({"error": "Vehicle not found."}), 404
+
+        rows = connection.execute("""
+            SELECT
+                pb.id AS balance_id,
+                pb.matatu_id,
+                pb.passenger_destination_id AS journey_id,
+                pd.passenger_token AS passenger_id,
+                pb.amount,
+                pb.status,
+                pb.created_at,
+                pb.paid_at,
+                pb.confirmed_at
+            FROM passenger_balances AS pb
+            JOIN passenger_destinations AS pd
+                ON pd.id = pb.passenger_destination_id
+            WHERE pb.matatu_id = ?
+            ORDER BY pb.id DESC
+        """, (matatu_id,)).fetchall()
+
+        balances = [dict(row) for row in rows]
+
+        return jsonify({
+            "pending_balances": [
+                balance for balance in balances
+                if balance["status"] == "pending"
+            ],
+            "awaiting_confirmation": [
+                balance for balance in balances
+                if balance["status"] == "awaiting_confirmation"
+            ],
+            "history": [
+                balance for balance in balances
+                if balance["status"] == "confirmed"
+            ]
+        }), 200
+
+    except Exception:
+        app.logger.exception("Failed to retrieve passenger balances.")
+        return jsonify({
+            "error": "Could not retrieve balances."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+
+@app.route("/api/conductor/balances/<int:matatu_id>", methods=["POST"])
+def add_conductor_balance(matatu_id):
+    data = request.get_json(silent=True) or {}
+
+    passenger_id = data.get("passenger_id")
+    amount_raw = data.get("amount")
+
+    if not isinstance(passenger_id, str) or not passenger_id.strip():
+        return jsonify({"error": "A passenger ID is required."}), 400
+
+    passenger_id = passenger_id.strip().upper()
+
+    if isinstance(amount_raw, bool):
+        return jsonify({"error": "Enter a valid positive amount."}), 400
+
+    try:
+        amount = float(amount_raw)
+
+        if not __import__("math").isfinite(amount) or amount <= 0:
+            raise ValueError
+
+    except (TypeError, ValueError):
+        return jsonify({"error": "Enter a valid positive amount."}), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        matatu = connection.execute(
+            "SELECT id FROM matatus WHERE id = ?",
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+            return jsonify({"error": "Vehicle not found."}), 404
+
+        journeys = connection.execute("""
+            SELECT id, passenger_token
+            FROM passenger_destinations
+            WHERE matatu_id = ?
+              AND UPPER(passenger_token) = ?
+              AND status = 'waiting'
+            ORDER BY id DESC
+        """, (matatu_id, passenger_id)).fetchall()
+
+        if not journeys:
+            connection.rollback()
+            return jsonify({
+                "error": (
+                    f"No active journey was found for passenger ID "
+                    f"{passenger_id} on this matatu. Check the ID and "
+                    "ensure the passenger has an active journey."
+                )
+            }), 404
+
+        if len(journeys) > 1:
+            connection.rollback()
+            return jsonify({
+                "error": (
+                    "Multiple active journeys match this passenger ID. "
+                    "Resolve the ambiguity before adding a balance."
+                )
+            }), 409
+
+        journey_id = journeys[0]["id"]
+
+        # Prevent another balance while the existing one is unresolved.
+        existing = connection.execute("""
+            SELECT id, status
+            FROM passenger_balances
+            WHERE passenger_destination_id = ?
+              AND status IN ('pending', 'awaiting_confirmation')
+            LIMIT 1
+        """, (journey_id,)).fetchone()
+
+        if existing:
+            connection.rollback()
+            return jsonify({
+                "error": (
+                    "This passenger already has an outstanding balance. "
+                    "Resolve it before adding another."
+                )
+            }), 409
+
+        cursor = connection.execute("""
+            INSERT INTO passenger_balances (
+                matatu_id,
+                passenger_destination_id,
+                amount
+            )
+            VALUES (?, ?, ?)
+        """, (matatu_id, journey_id, amount))
+
+        balance_id = cursor.lastrowid
+        connection.commit()
+
+        return jsonify({
+            "message": "Passenger balance added successfully.",
+            "balance_id": balance_id,
+            "passenger_id": journeys[0]["passenger_token"],
+            "amount": amount,
+            "status": "pending"
+        }), 201
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Failed to add passenger balance.")
+        return jsonify({
+            "error": "Could not add passenger balance."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+
+
+@app.route(
+    "/api/conductor/balances/<int:balance_id>/pay",
+    methods=["POST"]
+)
+def mark_conductor_balance_paid(balance_id):
+    data = request.get_json(silent=True) or {}
+    matatu_id = data.get("matatu_id")
+
+    if isinstance(matatu_id, bool):
+        return jsonify({"error": "A valid vehicle ID is required."}), 400
+
+    try:
+        matatu_id = int(matatu_id)
+
+        if matatu_id <= 0:
+            raise ValueError
+
+    except (TypeError, ValueError):
+        return jsonify({"error": "A valid vehicle ID is required."}), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        balance = connection.execute("""
+            SELECT
+                pb.id,
+                pb.status,
+                pb.passenger_destination_id,
+                pb.matatu_id,
+                pd.passenger_token
+            FROM passenger_balances pb
+            JOIN passenger_destinations pd
+                ON pd.id = pb.passenger_destination_id
+               AND pd.matatu_id = pb.matatu_id
+            WHERE pb.id = ?
+              AND pb.matatu_id = ?
+        """, (balance_id, matatu_id)).fetchone()
+
+        if balance is None:
+            connection.rollback()
+            return jsonify({
+                "error": "Balance not found for this vehicle."
+            }), 404
+
+        if balance["status"] != "pending":
+            connection.rollback()
+            return jsonify({
+                "error": "Only pending balances can be moved to "
+                         "awaiting confirmation."
+            }), 409
+
+        cursor = connection.execute("""
+            UPDATE passenger_balances
+            SET status = 'awaiting_confirmation',
+                paid_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND matatu_id = ?
+              AND status = 'pending'
+        """, (balance_id, matatu_id))
+
+        if cursor.rowcount != 1:
+            connection.rollback()
+            return jsonify({
+                "error": "The balance could not be updated. "
+                         "Please refresh and try again."
+            }), 409
+
+        connection.execute("""
+            INSERT INTO passenger_notifications (
+                matatu_id,
+                passenger_destination_id,
+                balance_id,
+                notification_type,
+                message
+            )
+            VALUES (?, ?, ?, 'payment_confirmation', ?)
+        """, (
+            matatu_id,
+            balance["passenger_destination_id"],
+            balance_id,
+            (
+                f"Your payment has been recorded for journey "
+                f"{balance['passenger_token']}. "
+                f"Please confirm receipt of the payment."
+            )
+        ))
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Repayment recorded. Awaiting passenger confirmation.",
+            "balance_id": balance_id,
+            "status": "awaiting_confirmation"
+        }), 200
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to record balance repayment or notification."
+        )
+        return jsonify({
+            "error": "Could not record repayment."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route(
+    "/api/passenger/balances/<int:balance_id>/confirm",
+    methods=["POST"]
+)
+def confirm_passenger_balance(balance_id):
+    data = request.get_json(silent=True) or {}
+    passenger_id = data.get("passenger_id")
+
+    if not isinstance(passenger_id, str) or not passenger_id.strip():
+        return jsonify({
+            "error": "A valid passenger ID is required."
+        }), 400
+
+    passenger_id = passenger_id.strip().upper()
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        balance = connection.execute("""
+            SELECT pb.id, pb.status
+            FROM passenger_balances AS pb
+            JOIN passenger_destinations AS pd
+              ON pd.id = pb.passenger_destination_id
+            WHERE pb.id = ?
+              AND UPPER(pd.passenger_token) = ?
+        """, (balance_id, passenger_id)).fetchone()
+
+        if balance is None:
+            connection.rollback()
+            return jsonify({
+                "error": "Balance not found for this passenger."
+            }), 404
+
+        if balance["status"] != "awaiting_confirmation":
+            connection.rollback()
+            return jsonify({
+                "error": "Only balances awaiting confirmation can be confirmed."
+            }), 409
+
+        cursor = connection.execute("""
+            UPDATE passenger_balances
+            SET status = 'confirmed',
+                confirmed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status = 'awaiting_confirmation'
+        """, (balance_id,))
+
+        if cursor.rowcount != 1:
+            connection.rollback()
+            return jsonify({
+                "error": "Confirmation failed. Please refresh and retry."
+            }), 409
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Payment receipt confirmed.",
+            "balance_id": balance_id,
+            "status": "confirmed"
+        }), 200
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Failed to confirm passenger balance.")
+        return jsonify({
+            "error": "Could not confirm payment."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/passenger/notifications/<string:passenger_id>",
+    methods=["GET"]
+)
+def get_passenger_notifications(passenger_id):
+    passenger_id = passenger_id.strip().upper()
+
+    if not passenger_id:
+        return jsonify({
+            "error": "A valid passenger ID is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        passenger = connection.execute(
+            """
+            SELECT id
+            FROM passenger_destinations
+            WHERE UPPER(passenger_token) = ?
+            LIMIT 1
+            """,
+            (passenger_id,)
+        ).fetchone()
+
+        if passenger is None:
+            return jsonify({
+                "error": "Passenger not found."
+            }), 404
+
+        notifications = connection.execute(
+            """
+            SELECT
+                pn.id,
+                pn.passenger_destination_id AS journey_id,
+                pn.balance_id,
+                pn.notification_type,
+                pn.message,
+                pn.is_read,
+                pn.created_at
+            FROM passenger_notifications pn
+            JOIN passenger_destinations pd
+                ON pd.id = pn.passenger_destination_id
+            WHERE UPPER(pd.passenger_token) = ?
+            ORDER BY pn.created_at DESC, pn.id DESC
+            """,
+            (passenger_id,)
+        ).fetchall()
+
+        return jsonify({
+            "passenger_id": passenger_id,
+            "notification_count": len(notifications),
+            "notifications": [
+                {
+                    "id": notification["id"],
+                    "journey_id": notification["journey_id"],
+                    "balance_id": notification["balance_id"],
+                    "notification_type": notification["notification_type"],
+                    "message": notification["message"],
+                    "is_read": bool(notification["is_read"]),
+                    "created_at": notification["created_at"]
+                }
+                for notification in notifications
+            ]
+        }), 200
+
+    except Exception:
+        app.logger.exception(
+            "Failed to retrieve passenger notifications."
+        )
+        return jsonify({
+            "error": "Could not retrieve notifications."
+        }), 500
+
+    finally:
+        connection.close()
+
+@app.route(
+    "/api/passenger/notifications/<string:passenger_id>/<int:notification_id>/read",
+    methods=["POST"]
+)
+def mark_passenger_notification_read(passenger_id, notification_id):
+    passenger_id = passenger_id.strip().upper()
+
+    if not passenger_id:
+        return jsonify({
+            "error": "A valid passenger ID is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        notification = connection.execute(
+            """
+            SELECT pn.id, pn.is_read
+            FROM passenger_notifications pn
+            JOIN passenger_destinations pd
+                ON pd.id = pn.passenger_destination_id
+            WHERE pn.id = ?
+              AND UPPER(pd.passenger_token) = ?
+            """,
+            (notification_id, passenger_id)
+        ).fetchone()
+
+        if notification is None:
+            return jsonify({
+                "error": "Notification not found."
+            }), 404
+
+        if notification["is_read"]:
+            return jsonify({
+                "message": "Notification has already been read.",
+                "notification_id": notification_id,
+                "is_read": True
+            }), 200
+
+        connection.execute(
+            """
+            UPDATE passenger_notifications
+            SET is_read = 1
+            WHERE id = ?
+            """,
+            (notification_id,)
+        )
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Notification marked as read.",
+            "notification_id": notification_id,
+            "is_read": True
+        }), 200
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to mark passenger notification as read."
+        )
+        return jsonify({
+            "error": "Could not update notification."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+# ---------------- END PASSENGER BALANCE API ----------------
+
 
 
 @app.route("/generate-qr/<int:matatu_id>")
@@ -204,109 +1288,422 @@ def stages():
     )
 
 
+
 @app.route("/passenger/<int:matatu_id>", methods=["GET", "POST"])
 def passenger(matatu_id):
 
     connection = get_db_connection()
 
-    matatu = connection.execute(
-        """
-        SELECT * FROM matatus
-        WHERE id = ?
-        """,
-        (matatu_id,)
-    ).fetchone()
-
-    if matatu is None:
-        connection.close()
-        return "Matatu not found", 404
-
-    stages = connection.execute(
-        """
-        SELECT * FROM stages
-        WHERE route_name = ?
-        ORDER BY sequence_number
-        """,
-        (matatu["route_name"],)
-    ).fetchall()
-
-    if request.method == "POST":
-
-        destination_stage_id = request.form["destination_stage_id"]
-
-        # Create the passenger journey first.
-        cursor = connection.execute(
+    try:
+        matatu = connection.execute(
             """
-            INSERT INTO passenger_destinations (
-                matatu_id,
-                passenger_token,
-                destination_stage_id
-            )
-            VALUES (?, ?, ?)
-            """,
-            (
-                matatu_id,
-                "TEMP",
-                destination_stage_id
-            )
-        )
-
-        passenger_id = cursor.lastrowid
-
-        # Create a simple human-readable Passenger ID.
-        passenger_token = f"P{passenger_id:03d}"
-
-        # Store the human-readable ID.
-        connection.execute(
-            """
-            UPDATE passenger_destinations
-            SET passenger_token = ?
+            SELECT * FROM matatus
             WHERE id = ?
             """,
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return "Matatu not found", 404
+
+        stages = connection.execute(
+            """
+            SELECT * FROM stages
+            WHERE route_name = ?
+            ORDER BY sequence_number
+            """,
+            (matatu["route_name"],)
+        ).fetchall()
+
+        if request.method == "POST":
+
+            destination_stage_id = request.form[
+                "destination_stage_id"
+            ]
+
+            try:
+                # 1. Create a permanent passenger identity.
+                cursor = connection.execute(
+                    """
+                    INSERT INTO passengers (passenger_code)
+                    VALUES (?)
+                    """,
+                    ("PENDING",)
+                )
+
+                permanent_passenger_id = cursor.lastrowid
+
+                # 2. Generate the permanent passenger code.
+                passenger_token = (
+                    f"P{permanent_passenger_id:03d}"
+                )
+
+                connection.execute(
+                    """
+                    UPDATE passengers
+                    SET passenger_code = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        passenger_token,
+                        permanent_passenger_id
+                    )
+                )
+
+                # 3. Create a destination record linked to
+                #    the permanent passenger identity.
+                cursor = connection.execute(
+                    """
+                    INSERT INTO passenger_destinations (
+                        matatu_id,
+                        passenger_token,
+                        destination_stage_id,
+                        passenger_id
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        matatu_id,
+                        passenger_token,
+                        destination_stage_id,
+                        permanent_passenger_id
+                    )
+                )
+
+                # Preserve the numeric journey record ID.
+                journey_id = cursor.lastrowid
+
+                connection.commit()
+
+            except Exception:
+                connection.rollback()
+                raise
+
+            return redirect(
+                url_for(
+                    "passenger",
+                    matatu_id=matatu_id,
+                    passenger_id=journey_id
+                )
+            )
+
+        # GET request: retrieve the existing journey ID.
+        journey_id = request.args.get("passenger_id")
+
+        passenger_token = None
+
+        if journey_id:
+            passenger = connection.execute(
+                """
+                SELECT
+                    COALESCE(
+                        p.passenger_code,
+                        pd.passenger_token
+                    ) AS passenger_token
+                FROM passenger_destinations pd
+                LEFT JOIN passengers p
+                    ON p.id = pd.passenger_id
+                WHERE pd.id = ?
+                  AND pd.matatu_id = ?
+                """,
+                (journey_id, matatu_id)
+            ).fetchone()
+
+            if passenger:
+                passenger_token = passenger["passenger_token"]
+
+        return render_template(
+            "passenger.html",
+            matatu=matatu,
+            stages=stages,
+            passenger_id=journey_id,
+            passenger_token=passenger_token
+        )
+
+    finally:
+        connection.close()
+
+
+
+@app.route(
+    "/api/passenger/journeys/<int:journey_id>/destination-change-requests",
+    methods=["POST"]
+)
+def create_destination_change_request(journey_id):
+    data = request.get_json(silent=True) or {}
+    requested_stage_id = data.get("requested_destination_stage_id")
+
+    if requested_stage_id is None:
+        return jsonify({
+            "error": "A requested destination stage is required."
+        }), 400
+
+    try:
+        requested_stage_id = int(requested_stage_id)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "The requested destination stage must be an integer."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        journey = connection.execute(
+            """
+            SELECT
+                pd.id,
+                pd.matatu_id,
+                pd.destination_stage_id,
+                m.route_name
+            FROM passenger_destinations AS pd
+            JOIN matatus AS m ON m.id = pd.matatu_id
+            WHERE pd.id = ?
+            """,
+            (journey_id,)
+        ).fetchone()
+
+        if journey is None:
+            return jsonify({"error": "Passenger journey not found."}), 404
+
+        if journey["destination_stage_id"] == requested_stage_id:
+            return jsonify({
+                "error": "The requested destination is already active."
+            }), 400
+
+        requested_stage = connection.execute(
+            """
+            SELECT id, name
+            FROM stages
+            WHERE id = ? AND route_name = ?
+            """,
+            (requested_stage_id, journey["route_name"])
+        ).fetchone()
+
+        if requested_stage is None:
+            return jsonify({
+                "error": "The requested destination is not on this route."
+            }), 400
+
+        existing_request = connection.execute(
+            """
+            SELECT id
+            FROM destination_change_requests
+            WHERE passenger_destination_id = ?
+              AND status = 'pending'
+            """,
+            (journey_id,)
+        ).fetchone()
+
+        if existing_request is not None:
+            return jsonify({
+                "error": "You already have a pending destination-change request."
+            }), 409
+
+        cursor = connection.execute(
+            """
+            INSERT INTO destination_change_requests (
+                matatu_id,
+                passenger_destination_id,
+                current_destination_stage_id,
+                requested_destination_stage_id
+            )
+            VALUES (?, ?, ?, ?)
+            """,
             (
-                passenger_token,
-                passenger_id
+                journey["matatu_id"],
+                journey_id,
+                journey["destination_stage_id"],
+                requested_stage_id
             )
         )
 
         connection.commit()
+
+        return jsonify({
+            "message": (
+                "Your destination-change request has been sent to the conductor."
+            ),
+            "request_id": cursor.lastrowid,
+            "status": "pending"
+        }), 201
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Failed to create destination-change request.")
+        return jsonify({
+            "error": "Could not submit the destination-change request."
+        }), 500
+
+    finally:
         connection.close()
 
-        return redirect(
-            url_for(
-                "passenger",
-                matatu_id=matatu_id,
-                passenger_id=passenger_id
+@app.route(
+    "/api/conductor/destination-change-requests/<int:matatu_id>",
+    methods=["GET"]
+)
+def get_destination_change_requests(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        matatu = connection.execute(
+            "SELECT id FROM matatus WHERE id = ?",
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return jsonify({"error": "Vehicle not found."}), 404
+
+        rows = connection.execute(
+            """
+            SELECT
+                dcr.id AS request_id,
+                dcr.passenger_destination_id AS journey_id,
+                COALESCE(p.passenger_code, pd.passenger_token) AS passenger_id,
+                current_stage.name AS current_destination,
+                requested_stage.name AS requested_destination,
+                dcr.status,
+                dcr.created_at
+            FROM destination_change_requests AS dcr
+            JOIN passenger_destinations AS pd
+                ON pd.id = dcr.passenger_destination_id
+            LEFT JOIN passengers AS p
+                ON p.id = pd.passenger_id
+            LEFT JOIN stages AS current_stage
+                ON current_stage.id = dcr.current_destination_stage_id
+            LEFT JOIN stages AS requested_stage
+                ON requested_stage.id = dcr.requested_destination_stage_id
+            WHERE dcr.matatu_id = ?
+              AND dcr.status = 'pending'
+            ORDER BY dcr.created_at ASC, dcr.id ASC
+            """,
+            (matatu_id,)
+        ).fetchall()
+
+        return jsonify({
+            "requests": [
+                {
+                    "request_id": row["request_id"],
+                    "journey_id": row["journey_id"],
+                    "passenger_id": row["passenger_id"],
+                    "current_destination": row["current_destination"],
+                    "requested_destination": row["requested_destination"],
+                    "status": row["status"],
+                    "created_at": row["created_at"]
+                }
+                for row in rows
+            ]
+        })
+
+    except Exception:
+        app.logger.exception("Failed to retrieve destination-change requests.")
+        return jsonify({
+            "error": "Could not load destination-change requests."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route(
+    "/api/conductor/destination-change-requests/<int:request_id>/decision",
+    methods=["POST"]
+)
+def decide_destination_change_request(request_id):
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")
+
+    if action not in ("approve", "reject"):
+        return jsonify({
+            "error": "Action must be 'approve' or 'reject'."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        change_request = connection.execute(
+            """
+            SELECT
+                id,
+                matatu_id,
+                passenger_destination_id,
+                requested_destination_stage_id,
+                status
+            FROM destination_change_requests
+            WHERE id = ?
+            """,
+            (request_id,)
+        ).fetchone()
+
+        if change_request is None:
+            connection.rollback()
+            return jsonify({
+                "error": "Destination-change request not found."
+            }), 404
+
+        if change_request["status"] != "pending":
+            connection.rollback()
+            return jsonify({
+                "error": "This request has already been resolved."
+            }), 409
+
+        if action == "approve":
+            update_result = connection.execute(
+                """
+                UPDATE passenger_destinations
+                SET destination_stage_id = ?
+                WHERE id = ? AND matatu_id = ?
+                """,
+                (
+                    change_request["requested_destination_stage_id"],
+                    change_request["passenger_destination_id"],
+                    change_request["matatu_id"]
+                )
+            )
+
+            if update_result.rowcount != 1:
+                connection.rollback()
+                return jsonify({
+                    "error": "The passenger journey could not be updated."
+                }), 409
+
+        connection.execute(
+            """
+            UPDATE destination_change_requests
+            SET status = ?,
+                resolved_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND status = 'pending'
+            """,
+            (
+                "approved" if action == "approve" else "rejected",
+                request_id
             )
         )
 
-    passenger_id = request.args.get("passenger_id")
+        connection.commit()
 
-    passenger_token = None
+        return jsonify({
+            "message": (
+                "Destination change approved."
+                if action == "approve"
+                else "Destination change rejected. The existing destination remains unchanged."
+            ),
+            "request_id": request_id,
+            "status": "approved" if action == "approve" else "rejected"
+        })
 
-    if passenger_id:
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Failed to resolve destination-change request.")
+        return jsonify({
+            "error": "Could not resolve the destination-change request."
+        }), 500
 
-        passenger = connection.execute(
-            """
-            SELECT passenger_token
-            FROM passenger_destinations
-            WHERE id = ?
-            """,
-            (passenger_id,)
-        ).fetchone()
+    finally:
+        connection.close()
 
-        if passenger:
-            passenger_token = passenger["passenger_token"]
-
-    connection.close()
-
-    return render_template(
-        "passenger.html",
-        matatu=matatu,
-        stages=stages,
-        passenger_id=passenger_id,
-        passenger_token=passenger_token
-    )
 
 @app.route("/conductor/<int:matatu_id>")
 def conductor(matatu_id):
@@ -586,6 +1983,10 @@ def move_matatu(matatu_id):
             )
 
         connection.commit()
+        connection.close()
+
+        # Check for proximity alerts after movement is saved.
+        check_proximity_alerts(matatu_id)
 
         # Redirect after POST
         return redirect(

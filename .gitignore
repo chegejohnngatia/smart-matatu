@@ -1,13 +1,24 @@
+# Python virtual environment
 venv/
+
+# Python cache files
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
+# Environment variables and secrets
 .env
 .env.*
 
+# IDE settings
 .vscode/
 .idea/
 
+# Flask instance folder
 instance/
+
+# Local databases and database backups
+*.db
+*.db-*
+*.bak

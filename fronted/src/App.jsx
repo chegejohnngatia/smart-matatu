@@ -1,13 +1,17 @@
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Landing from './components/Landing'
 import AdminLayout from './components/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import ResourcePage from './pages/admin/ResourcePage'
 import AdminDashboard from './components/AdminDashboard'
+
+import ConductorEmergencyAlerts from './pages/conductor/ConductorEmergencyAlerts'
 import ConductorLayout from './components/conductor/ConductorLayout'
 import ConductorDashboard from './pages/conductor/ConductorDashboard'
-import ConductorSectionPage from './pages/conductor/ConductorSectionPage'
+import ConductorBalances from './pages/conductor/ConductorBalances'
+import ConductorRequests from './pages/conductor/ConductorRequests'
 
 import Passenger from './pages/Passenger'
 
@@ -33,13 +37,16 @@ function RoleHome() {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public pages */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<RoleHome />} />
 
+      {/* Passenger pages */}
       <Route path="/passenger" element={<Passenger />} />
       <Route path="/passenger/:matatuId" element={<Passenger />} />
 
+      {/* Admin workspace */}
       <Route
         path="/admin"
         element={
@@ -58,6 +65,7 @@ function AppRoutes() {
         <Route path="requests" element={<ResourcePage />} />
       </Route>
 
+      {/* Existing admin prototype */}
       <Route
         path="/admin-prototype"
         element={
@@ -67,6 +75,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Conductor workspace */}
       <Route
         path="/conductor"
         element={
@@ -75,12 +84,23 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
+        {/* Default section: passenger destinations */}
         <Route index element={<ConductorDashboard />} />
-        <Route path="trip" element={<ConductorSectionPage />} />
-        <Route path="requests" element={<ConductorSectionPage />} />
-        <Route path="history" element={<ConductorSectionPage />} />
+
+        {/* Balance records */}
+        <Route path="balances" element={<ConductorBalances />} />
+
+        {/* Destination-change requests */}
+        <Route path="requests" element={<ConductorRequests />} />
+
+        {/* Emergency alerts */}
+        <Route
+          path="emergency-alerts"
+          element={<ConductorEmergencyAlerts />}
+        />
       </Route>
 
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
