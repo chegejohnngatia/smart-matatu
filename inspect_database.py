@@ -1,40 +1,41 @@
-
 import sqlite3
+from pathlib import Path
 
-connection = sqlite3.connect("smart_matatu.db")
+database_path = Path(__file__).resolve().parent / "smart_matatu.db"
+connection = sqlite3.connect(database_path)
 
 try:
-    print("NOTIFICATION TABLE COLUMNS")
-    for column in connection.execute(
-        "PRAGMA table_info(passenger_notifications)"
-    ):
-        print(f"- {column[1]}: {column[2]}")
+    for table in ("conductors", "matatu_assignments"):
+        print(f"\n{table.upper()} INDEXES")
+        print("=" * (len(table) + 8))
 
-    print("\nNOTIFICATION INDEXES")
-    for index in connection.execute(
-        "PRAGMA index_list(passenger_notifications)"
-    ):
-        print(f"- {index[1]}")
+        indexes = connection.execute(
+            f"PRAGMA index_list({table})"
+        ).fetchall()
 
-    print("\nEXISTING PAYMENT STATUS COUNTS")
-    statuses = connection.execute(
+        for index in indexes:
+            print(f"\nIndex: {index[1]}")
+            print(f"Unique: {bool(index[2])}")
+
+            details = connection.execute(
+                f"PRAGMA index_info({index[1]})"
+            ).fetchall()
+
+            print("Columns:", [column[2] for column in details])
+
+    print("\nASSIGNMENT TABLE SQL")
+    print("====================")
+
+    schema = connection.execute(
         """
-        SELECT status, COUNT(*)
-        FROM passenger_balances
-        GROUP BY status
-        ORDER BY status
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name = 'matatu_assignments'
         """
-    ).fetchall()
+    ).fetchone()
 
-    for status, count in statuses:
-        print(f"- {status}: {count}")
-
-    print("\nEXISTING NOTIFICATION COUNT")
-    count = connection.execute(
-        "SELECT COUNT(*) FROM passenger_notifications"
-    ).fetchone()[0]
-
-    print(f"- {count}")
+    print(schema[0] if schema else "Table not found")
 
 finally:
     connection.close()

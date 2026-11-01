@@ -1,11 +1,40 @@
-from flask import Flask, render_template, request, redirect, url_for,send_from_directory, jsonify
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    send_from_directory,
+    jsonify,
+    session
+)
+
+import secrets
+import hashlib
+import re
+import sqlite3
+import uuid
+from PIL import Image, UnidentifiedImageError
+import warnings
+from functools import wraps
+from werkzeug.security import (
+    check_password_hash,
+    generate_password_hash
+)
+
 from database import init_db, get_db_connection
 from gps import calculate_distance
+
 import socket
 import qrcode
 import io
 import base64
 import os
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 FRONTEND_DIST = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -19,7 +48,680 @@ app = Flask(
     static_url_path="/assets"
 )
 
+# Conductor passport photo storage
+CONDUCTOR_UPLOAD_FOLDER = os.path.join(
+    app.instance_path,
+    "conductor_uploads"
+)
 
+os.makedirs(CONDUCTOR_UPLOAD_FOLDER, exist_ok=True)
+
+# Maximum upload size: 5 MB
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+
+# Flask session security configuration
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY")
+
+if not app.config["SECRET_KEY"]:
+    raise RuntimeError(
+        "FLASK_SECRET_KEY is missing. Check your .env file."
+    )
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False  # Local development only
+
+# =====================================================
+# AUTHORIZATION: ADMINISTRATOR ACCESS
+# =====================================================
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return jsonify({
+                "success": False,
+                "message": "Authentication required."
+            }), 401
+
+        if session.get("role") != "admin":
+            return jsonify({
+                "success": False,
+                "message": "Administrator access required."
+            }), 403
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+# =====================================================
+# AUTHENTICATION: LOGIN
+# =====================================================
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_login():
+    data = request.get_json(silent=True) or {}
+
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+
+    if not email or not password:
+        return jsonify({
+            "success": False,
+            "message": "Email and password are required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        # Check administrator accounts first.
+        user = connection.execute(
+            """
+            SELECT id, full_name, email, password_hash
+            FROM admins
+            WHERE email = ? AND is_active = 1
+            """,
+            (email,)
+        ).fetchone()
+
+        role = "admin"
+
+        # If no administrator was found, check conductors.
+        if user is None:
+            user = connection.execute(
+                """
+                SELECT id, full_name, email, password_hash
+                FROM conductors
+                WHERE email = ? AND is_active = 1
+                """,
+                (email,)
+            ).fetchone()
+
+            role = "conductor"
+
+        # Verify account and password.
+        if user is None or not check_password_hash(
+            user["password_hash"], password
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Invalid email or password."
+            }), 401
+
+        assigned_matatu = None
+
+        # Every conductor must have an active matatu assignment.
+        if role == "conductor":
+            assigned_matatu = connection.execute(
+                """
+                SELECT
+                    m.id AS matatu_id,
+                    m.registration_number,
+                    m.route_name
+                FROM matatu_assignments ma
+                JOIN matatus m ON m.id = ma.matatu_id
+                WHERE ma.conductor_id = ?
+                  AND ma.ended_at IS NULL
+                """,
+                (user["id"],)
+            ).fetchone()
+
+            if assigned_matatu is None:
+                return jsonify({
+                    "success": False,
+                    "message": "You do not have an active matatu assignment."
+                }), 403
+
+        # Start a fresh authenticated session.
+        session.clear()
+
+        session["user_id"] = user["id"]
+        session["full_name"] = user["full_name"]
+        session["email"] = user["email"]
+        session["role"] = role
+
+        session["csrf_token"] = secrets.token_urlsafe(32)
+
+        if assigned_matatu is not None:
+            session["matatu_id"] = assigned_matatu["matatu_id"]
+
+        response_user = {
+            "id": user["id"],
+            "full_name": user["full_name"],
+            "email": user["email"],
+            "role": role
+        }
+
+        if assigned_matatu is not None:
+            response_user["matatu"] = {
+                "id": assigned_matatu["matatu_id"],
+                "registration_number": assigned_matatu["registration_number"],
+                "route_name": assigned_matatu["route_name"]
+            }
+
+        return jsonify({
+                "success": True,
+                "message": "Login successful.",
+                "csrf_token": session["csrf_token"],
+                "user": response_user
+            }), 200
+
+    finally:
+        connection.close()
+
+# =====================================================
+# SECURITY: CSRF PROTECTION
+# =====================================================
+
+def csrf_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        session_token = session.get("csrf_token")
+        request_token = request.headers.get("X-CSRF-Token")
+
+        if (
+            not session_token
+            or not request_token
+            or not secrets.compare_digest(
+                session_token,
+                request_token
+            )
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Invalid or missing CSRF token."
+            }), 403
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+# =====================================================
+# ADMIN: CREATE CONDUCTOR AND ASSIGN MATATU
+# =====================================================
+
+# =====================================================
+# AUTHORIZATION: CONDUCTOR ACCESS
+# =====================================================
+
+def conductor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+
+        # Confirm that a user is logged in.
+        if "user_id" not in session:
+            return jsonify({
+                "success": False,
+                "message": "Authentication required."
+            }), 401
+
+        # Only conductors may access conductor endpoints.
+        if session.get("role") != "conductor":
+            return jsonify({
+                "success": False,
+                "message": "Conductor access required."
+            }), 403
+
+        connection = get_db_connection()
+
+        try:
+            assignment = connection.execute(
+                """
+                SELECT matatu_id
+                FROM matatu_assignments
+                WHERE conductor_id = ?
+                  AND ended_at IS NULL
+                """,
+                (session["user_id"],)
+            ).fetchone()
+
+        finally:
+            connection.close()
+
+        # A conductor must have an active assignment.
+        if assignment is None:
+            session.pop("matatu_id", None)
+
+            return jsonify({
+                "success": False,
+                "message": "You do not have an active matatu assignment."
+            }), 403
+
+        assigned_matatu_id = assignment["matatu_id"]
+
+        # If the URL contains a matatu ID, verify ownership.
+        requested_matatu_id = kwargs.get("matatu_id")
+
+        if requested_matatu_id is not None:
+            if requested_matatu_id != assigned_matatu_id:
+                return jsonify({
+                    "success": False,
+                    "message": "You are not authorized to access this matatu."
+                }), 403
+
+        # Keep the current assignment in the session.
+        session["matatu_id"] = assigned_matatu_id
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+    # =====================================================
+# AUTHORIZATION: PASSENGER ACCESS
+# =====================================================
+
+def get_authenticated_passenger(connection):
+    auth_header = request.headers.get("Authorization", "")
+
+    scheme, separator, token = auth_header.partition(" ")
+
+    if (
+        not separator
+        or scheme.lower() != "bearer"
+        or not token.strip()
+    ):
+        return None
+
+    token = token.strip()
+
+    token_hash = hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+
+    journey = connection.execute(
+        """
+        SELECT
+            id,
+            matatu_id,
+            passenger_token,
+            destination_stage_id,
+            status
+        FROM passenger_destinations
+        WHERE access_token_hash = ?
+        """,
+        (token_hash,)
+    ).fetchone()
+
+    return journey
+
+# =====================================================
+# AUTH: GET CURRENT USER
+# =====================================================
+
+@app.route("/api/auth/me", methods=["GET"])
+def api_current_user():
+    if "user_id" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Not authenticated."
+        }), 401
+
+    user = {
+        "id": session["user_id"],
+        "full_name": session["full_name"],
+        "email": session["email"],
+        "role": session["role"]
+    }
+
+    if session["role"] == "conductor":
+        connection = get_db_connection()
+
+        try:
+            assigned_matatu = connection.execute(
+                """
+                SELECT
+                    m.id AS matatu_id,
+                    m.registration_number,
+                    m.route_name
+                FROM matatu_assignments ma
+                JOIN matatus m ON m.id = ma.matatu_id
+                WHERE ma.conductor_id = ?
+                  AND ma.ended_at IS NULL
+                """,
+                (session["user_id"],)
+            ).fetchone()
+
+            if assigned_matatu is None:
+                session.clear()
+
+                return jsonify({
+                    "success": False,
+                    "message": "No active matatu assignment found."
+                }), 403
+
+            user["matatu"] = {
+                "id": assigned_matatu["matatu_id"],
+                "registration_number": assigned_matatu["registration_number"],
+                "route_name": assigned_matatu["route_name"]
+            }
+
+        finally:
+            connection.close()
+
+    return jsonify({
+        "success": True,
+        "user": user,
+        "csrf_token": session.get("csrf_token")
+    }), 200
+
+# =====================================================
+# AUTH: LOGOUT
+# =====================================================
+
+@app.route("/api/auth/logout", methods=["POST"])
+@csrf_required
+def api_logout():
+    session.clear()
+
+    return jsonify({
+        "success": True,
+        "message": "Logout successful."
+    }), 200
+
+@app.route("/api/admin/conductors", methods=["POST"])
+@admin_required
+@csrf_required
+def create_conductor():
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+    matatu_id = request.form.get("matatu_id", "").strip()
+    passport_photo = request.files.get("passport_photo")
+
+    # Validate required fields.
+    if not all([full_name, email, password, matatu_id, passport_photo]):
+        return jsonify({
+            "success": False,
+            "message": "All fields, including the passport photo, are required."
+        }), 400
+
+    if len(full_name) < 3 or len(full_name) > 100:
+        return jsonify({
+        "success": False,
+        "message": "Full name must be between 3 and 100 characters."
+    }), 400
+
+    if not re.fullmatch(
+        r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+",
+        email
+        ):
+        return jsonify({
+        "success": False,
+        "message": "Enter a valid email address."
+    }), 400
+
+    if len(password) < 8 or len(password) > 128:
+        return jsonify({
+        "success": False,
+        "message": "Password must be between 8 and 128 characters."
+    }), 400
+    try:
+        matatu_id = int(matatu_id)
+
+        if matatu_id <= 0:
+            raise ValueError
+
+    except ValueError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid matatu selection."
+        }), 400
+
+        # Validate and process the uploaded image.
+    try:
+        passport_photo.stream.seek(0)
+
+        # Check the actual image format and dimensions.
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "error",
+                Image.DecompressionBombWarning
+            )
+
+            with Image.open(passport_photo.stream) as uploaded_image:
+                if uploaded_image.format not in ("JPEG", "PNG"):
+                    return jsonify({
+                        "success": False,
+                        "message": "Only JPEG and PNG images are accepted."
+                    }), 400
+
+                if (
+                    uploaded_image.width < 200
+                    or uploaded_image.height < 200
+                ):
+                    return jsonify({
+                        "success": False,
+                        "message": "The passport photo must be at least 200 × 200 pixels."
+                    }), 400
+
+                if (
+                    uploaded_image.width > 6000
+                    or uploaded_image.height > 6000
+                ):
+                    return jsonify({
+                        "success": False,
+                        "message": "The passport photo dimensions are too large."
+                    }), 400
+
+                # Verify that the image data is valid.
+                uploaded_image.verify()
+
+        # Reopen the image after verification.
+        passport_photo.stream.seek(0)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "error",
+                Image.DecompressionBombWarning
+            )
+
+            with Image.open(passport_photo.stream) as uploaded_image:
+                processed_image = uploaded_image.convert("RGB")
+                processed_image.thumbnail((1200, 1200))
+
+    except (
+        UnidentifiedImageError,
+        Image.DecompressionBombWarning,
+        Image.DecompressionBombError,
+        OSError,
+        ValueError
+    ):
+        return jsonify({
+            "success": False,
+            "message": "The uploaded passport photo is invalid or too large."
+        }), 400
+
+    # Generate a unique filename.
+    photo_filename = f"{uuid.uuid4().hex}.jpg"
+
+    photo_path = os.path.join(
+        CONDUCTOR_UPLOAD_FOLDER,
+        photo_filename
+    )
+
+    relative_photo_path = os.path.join(
+        "conductor_uploads",
+        photo_filename
+    ).replace("\\", "/")
+
+    connection = get_db_connection()
+
+    try:
+        # Save the processed image.
+        processed_image.save(
+            photo_path,
+            format="JPEG",
+            quality=90,
+            optimize=True
+        )
+
+        # Begin an atomic database operation.
+        connection.execute("BEGIN IMMEDIATE")
+
+        # Confirm the selected matatu exists.
+        matatu = connection.execute(
+            """
+            SELECT id
+            FROM matatus
+            WHERE id = ?
+            """,
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+            os.remove(photo_path)
+
+            return jsonify({
+                "success": False,
+                "message": "Selected matatu does not exist."
+            }), 404
+
+        # Create the conductor account.
+        password_hash = generate_password_hash(password)
+
+        cursor = connection.execute(
+            """
+            INSERT INTO conductors (
+                full_name,
+                email,
+                password_hash,
+                passport_photo
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                full_name,
+                email,
+                password_hash,
+                relative_photo_path
+            )
+        )
+
+        conductor_id = cursor.lastrowid
+
+        # Assign the selected matatu.
+        connection.execute(
+            """
+            INSERT INTO matatu_assignments (
+                conductor_id,
+                matatu_id
+            )
+            VALUES (?, ?)
+            """,
+            (conductor_id, matatu_id)
+        )
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Conductor account created and matatu assigned successfully.",
+            "conductor": {
+                "id": conductor_id,
+                "full_name": full_name,
+                "email": email,
+                "matatu_id": matatu_id,
+                "passport_photo_url": url_for("get_passenger_conductor_photo")
+            }
+        }), 201
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+
+        return jsonify({
+            "success": False,
+            "message": "The email may already exist, or the selected matatu is already assigned."
+        }), 409
+
+    except Exception:
+        connection.rollback()
+
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+
+        raise
+
+    finally:
+        connection.close()
+
+@app.route("/api/passenger/conductor-photo", methods=["GET"])
+def get_passenger_conductor_photo():
+    connection = get_db_connection()
+
+    try:
+        journey = get_authenticated_passenger(connection)
+
+        if journey is None:
+            return jsonify({
+                "success": False,
+                "message": "A valid passenger access token is required."
+            }), 401
+
+        if journey["status"] != "waiting":
+            return jsonify({
+                "success": False,
+                "message": "This passenger journey is no longer active."
+            }), 403
+
+        conductor = connection.execute(
+            """
+            SELECT
+                c.full_name,
+                c.passport_photo
+            FROM matatu_assignments ma
+            JOIN conductors c
+                ON c.id = ma.conductor_id
+            WHERE ma.matatu_id = ?
+              AND ma.ended_at IS NULL
+              AND c.is_active = 1
+            """,
+            (journey["matatu_id"],)
+        ).fetchone()
+
+        if conductor is None or not conductor["passport_photo"]:
+            return jsonify({
+                "success": False,
+                "message": "No active conductor photo is available."
+            }), 404
+
+        photo_filename = os.path.basename(
+            conductor["passport_photo"].replace("\\", "/")
+        )
+
+        if not re.fullmatch(r"[0-9a-f]{32}\.jpg", photo_filename):
+            return jsonify({
+                "success": False,
+                "message": "The conductor photo is unavailable."
+            }), 404
+
+        photo_path = os.path.join(
+            CONDUCTOR_UPLOAD_FOLDER,
+            photo_filename
+        )
+
+        if not os.path.isfile(photo_path):
+            return jsonify({
+                "success": False,
+                "message": "The conductor photo is unavailable."
+            }), 404
+
+        response = send_from_directory(
+            CONDUCTOR_UPLOAD_FOLDER,
+            photo_filename,
+            mimetype="image/jpeg"
+        )
+
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        return response
+
+    finally:
+        connection.close()
 
 @app.after_request
 def add_cors_headers(response):
@@ -32,16 +734,20 @@ def add_cors_headers(response):
 
     if origin in allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
+
+        # Allow browser requests to include Flask session cookies.
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+
         response.headers["Access-Control-Allow-Methods"] = (
             "GET, POST, OPTIONS"
         )
         response.headers["Access-Control-Allow-Headers"] = (
-            "Content-Type"
+            "Content-Type, Authorization, X-CSRF-Token"
         )
+
         response.headers["Vary"] = "Origin"
 
     return response
-
 
 def get_local_ip():
 
@@ -58,9 +764,6 @@ def get_local_ip():
         socket_connection.close()
 
     return local_ip
-
-
-
 
 def check_proximity_alerts(matatu_id):
     connection = get_db_connection()
@@ -221,8 +924,6 @@ def check_proximity_alerts(matatu_id):
     finally:
         connection.close()
 
-
-
 @app.route("/")
 @app.route("/admin")
 @app.route("/admin/<path:frontend_path>")
@@ -235,8 +936,6 @@ def check_proximity_alerts(matatu_id):
 @app.route("/admin-prototype")
 def serve_react_app(frontend_path=None):
     return send_from_directory(FRONTEND_DIST, "index.html")
-
-
 
 @app.route("/add-matatu", methods=["GET", "POST"])
 def add_matatu():
@@ -262,8 +961,8 @@ def add_matatu():
 
     return render_template("add_matatu.html")
 
-
 @app.route("/api/conductor/dashboard/<int:matatu_id>", methods=["GET"])
+@conductor_required
 def conductor_dashboard_api(matatu_id):
     connection = get_db_connection()
 
@@ -342,11 +1041,10 @@ def conductor_dashboard_api(matatu_id):
     finally:
         connection.close()
 
-
 # ---------------- CONDUCTOR EMERGENCY ALERT API ----------------
 
-
 @app.route("/api/conductor/emergency-alerts/<int:matatu_id>", methods=["GET"])
+@conductor_required
 def get_conductor_emergency_alerts(matatu_id):
     connection = get_db_connection()
 
@@ -411,19 +1109,16 @@ def get_conductor_emergency_alerts(matatu_id):
     finally:
         connection.close()
 
-
 # ---------------- END CONDUCTOR EMERGENCY ALERT API ----------------
-
-
 
 @app.route(
     "/api/conductor/emergency-alerts/<int:alert_id>/acknowledge",
     methods=["POST"]
 )
+@conductor_required
+@csrf_required
 def acknowledge_emergency_alert(alert_id):
-    data = request.get_json(silent=True) or {}
-
-    matatu_id = data.get("matatu_id")
+    matatu_id = session["matatu_id"]
 
     try:
         matatu_id = int(matatu_id)
@@ -496,10 +1191,7 @@ def acknowledge_emergency_alert(alert_id):
     finally:
         connection.close()
 
-
-
 # ---------------- PASSENGER EMERGENCY ISSUE API ----------------
-
 
 @app.route(
     "/api/passenger/journeys/<int:journey_id>/emergency-issues",
@@ -508,20 +1200,16 @@ def acknowledge_emergency_alert(alert_id):
 def create_passenger_emergency_issue(journey_id):
     data = request.get_json(silent=True) or {}
 
-    passenger_id = data.get("passenger_id")
     issue_description = data.get("issue_description")
 
-    if not isinstance(passenger_id, str) or not passenger_id.strip():
-        return jsonify({
-            "error": "A valid passenger ID is required."
-        }), 400
-
-    if not isinstance(issue_description, str) or not issue_description.strip():
+    if (
+        not isinstance(issue_description, str)
+        or not issue_description.strip()
+    ):
         return jsonify({
             "error": "Please provide a description of the issue."
         }), 400
 
-    passenger_id = passenger_id.strip().upper()
     issue_description = issue_description.strip()
 
     if len(issue_description) > 1000:
@@ -534,22 +1222,23 @@ def create_passenger_emergency_issue(journey_id):
     try:
         connection.execute("BEGIN IMMEDIATE")
 
-        journey = connection.execute(
-            """
-            SELECT id, matatu_id, passenger_token
-            FROM passenger_destinations
-            WHERE id = ?
-              AND UPPER(passenger_token) = ?
-            """,
-            (journey_id, passenger_id)
-        ).fetchone()
+        # Authenticate passenger using their access token.
+        journey = get_authenticated_passenger(connection)
 
-        if journey is None:
+        if journey is None or journey["id"] != journey_id:
             connection.rollback()
             return jsonify({
-                "error": "Journey not found for this passenger."
-            }), 404
+                "error": "Invalid passenger authentication or journey."
+            }), 401
 
+        # Only active passenger journeys can submit issues.
+        if journey["status"] != "waiting":
+            connection.rollback()
+            return jsonify({
+                "error": "This journey is no longer active."
+            }), 403
+
+        # Check for an existing proximity alert.
         proximity_alert = connection.execute(
             """
             SELECT id
@@ -571,6 +1260,7 @@ def create_passenger_emergency_issue(journey_id):
                 "existing_alert_id": proximity_alert["id"]
             }), 409
 
+        # Prevent duplicate passenger issue alerts.
         existing_issue = connection.execute(
             """
             SELECT id, status
@@ -593,6 +1283,7 @@ def create_passenger_emergency_issue(journey_id):
                 "status": existing_issue["status"]
             }), 409
 
+        # Create the emergency issue alert.
         cursor = connection.execute(
             """
             INSERT INTO emergency_alerts (
@@ -623,9 +1314,11 @@ def create_passenger_emergency_issue(journey_id):
 
     except Exception:
         connection.rollback()
+
         app.logger.exception(
             "Failed to create passenger emergency issue."
         )
+
         return jsonify({
             "error": "Could not submit the issue. Please try again."
         }), 500
@@ -633,15 +1326,12 @@ def create_passenger_emergency_issue(journey_id):
     finally:
         connection.close()
 
-
 # ---------------- END PASSENGER EMERGENCY ISSUE API ----------------
-
-
 
 # ---------------- PASSENGER BALANCE API ----------------
 
-
 @app.route("/api/conductor/balances/<int:matatu_id>", methods=["GET"])
+@conductor_required
 def get_conductor_balances(matatu_id):
     connection = get_db_connection()
 
@@ -698,10 +1388,9 @@ def get_conductor_balances(matatu_id):
     finally:
         connection.close()
 
-
-
-
 @app.route("/api/conductor/balances/<int:matatu_id>", methods=["POST"])
+@conductor_required
+@csrf_required
 def add_conductor_balance(matatu_id):
     data = request.get_json(silent=True) or {}
 
@@ -817,17 +1506,14 @@ def add_conductor_balance(matatu_id):
     finally:
         connection.close()
 
-
-
-
-
 @app.route(
     "/api/conductor/balances/<int:balance_id>/pay",
     methods=["POST"]
 )
+@conductor_required
+@csrf_required
 def mark_conductor_balance_paid(balance_id):
-    data = request.get_json(silent=True) or {}
-    matatu_id = data.get("matatu_id")
+    matatu_id = session["matatu_id"]
 
     if isinstance(matatu_id, bool):
         return jsonify({"error": "A valid vehicle ID is required."}), 400
@@ -930,8 +1616,6 @@ def mark_conductor_balance_paid(balance_id):
     finally:
         connection.close()
 
-
-
 @app.route(
     "/api/passenger/balances/<int:balance_id>/confirm",
     methods=["POST"]
@@ -1003,7 +1687,6 @@ def confirm_passenger_balance(balance_id):
 
     finally:
         connection.close()
-
 
 @app.route(
     "/api/passenger/notifications/<string:passenger_id>",
@@ -1150,10 +1833,7 @@ def mark_passenger_notification_read(passenger_id, notification_id):
     finally:
         connection.close()
 
-
 # ---------------- END PASSENGER BALANCE API ----------------
-
-
 
 @app.route("/generate-qr/<int:matatu_id>")
 def generate_qr(matatu_id):
@@ -1267,7 +1947,6 @@ def add_stage():
 
     return render_template("add_stage.html")
 
-
 @app.route("/stages")
 def stages():
 
@@ -1287,9 +1966,7 @@ def stages():
         stages=stage_list
     )
 
-
-
-@app.route("/passenger/<int:matatu_id>", methods=["GET", "POST"])
+@app.route("/legacy-passenger/<int:matatu_id>", methods=["GET", "POST"])
 def passenger(matatu_id):
 
     connection = get_db_connection()
@@ -1423,8 +2100,6 @@ def passenger(matatu_id):
     finally:
         connection.close()
 
-
-
 @app.route(
     "/api/passenger/journeys/<int:journey_id>/destination-change-requests",
     methods=["POST"]
@@ -1541,6 +2216,7 @@ def create_destination_change_request(journey_id):
     "/api/conductor/destination-change-requests/<int:matatu_id>",
     methods=["GET"]
 )
+@conductor_required
 def get_destination_change_requests(matatu_id):
     connection = get_db_connection()
 
@@ -1603,12 +2279,12 @@ def get_destination_change_requests(matatu_id):
     finally:
         connection.close()
 
-
-
 @app.route(
     "/api/conductor/destination-change-requests/<int:request_id>/decision",
     methods=["POST"]
 )
+@conductor_required
+@csrf_required
 def decide_destination_change_request(request_id):
     data = request.get_json(silent=True) or {}
     action = data.get("action")
@@ -1649,6 +2325,13 @@ def decide_destination_change_request(request_id):
                 "error": "This request has already been resolved."
             }), 409
 
+        if change_request["matatu_id"] != session.get("matatu_id"):
+            connection.rollback()
+            return jsonify({
+                "error": "You are not authorized to resolve this request."
+            }), 403
+
+
         if action == "approve":
             update_result = connection.execute(
                 """
@@ -1669,7 +2352,8 @@ def decide_destination_change_request(request_id):
                     "error": "The passenger journey could not be updated."
                 }), 409
 
-        connection.execute(
+
+        status_result = connection.execute(
             """
             UPDATE destination_change_requests
             SET status = ?,
@@ -1681,6 +2365,12 @@ def decide_destination_change_request(request_id):
                 request_id
             )
         )
+
+        if status_result.rowcount != 1:
+            connection.rollback()
+            return jsonify({
+                "error": "The request could not be resolved. Please try again."
+            }), 409
 
         connection.commit()
 
@@ -1704,8 +2394,8 @@ def decide_destination_change_request(request_id):
     finally:
         connection.close()
 
-
 @app.route("/conductor/<int:matatu_id>")
+@conductor_required
 def conductor(matatu_id):
 
     connection = get_db_connection()
@@ -1751,26 +2441,59 @@ def conductor(matatu_id):
         passengers=passengers
     )
 
-
 @app.route("/notify-passenger/<int:passenger_id>", methods=["POST"])
+@conductor_required
+@csrf_required
 def notify_passenger(passenger_id):
-
     connection = get_db_connection()
 
-    connection.execute(
-        """
-        UPDATE passenger_destinations
-        SET status = 'notified'
-        WHERE id = ?
-        """,
-        (passenger_id,)
-    )
+    try:
+        journey = connection.execute(
+            """
+            SELECT id, matatu_id, status
+            FROM passenger_destinations
+            WHERE id = ?
+            """,
+            (passenger_id,)
+        ).fetchone()
 
-    connection.commit()
-    connection.close()
+        if journey is None:
+            return "Passenger journey not found", 404
 
-    return redirect(request.referrer)
+        if journey["matatu_id"] != session.get("matatu_id"):
+            return "You are not authorized to notify this passenger", 403
 
+        if journey["status"] != "waiting":
+            return "Passenger journey is not awaiting notification", 409
+
+        result = connection.execute(
+            """
+            UPDATE passenger_destinations
+            SET status = 'notified'
+            WHERE id = ?
+              AND matatu_id = ?
+              AND status = 'waiting'
+            """,
+            (passenger_id, session["matatu_id"])
+        )
+
+        if result.rowcount != 1:
+            connection.rollback()
+            return "Passenger notification could not be completed", 409
+
+        connection.commit()
+
+        return redirect(url_for(
+            "conductor",
+            matatu_id=session["matatu_id"]
+        ))
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
 
 @app.route("/vehicle-status/<int:matatu_id>")
 def vehicle_status(matatu_id):
@@ -2152,7 +2875,6 @@ def move_matatu(matatu_id):
 
                 </form>
 
-
                 <!-- Stop -->
 
                 <form action="/move-matatu/{matatu_id}" method="POST" style="display:inline;">
@@ -2165,7 +2887,6 @@ def move_matatu(matatu_id):
 
                 </form>
 
-
                 <!-- Start -->
 
                 <form action="/move-matatu/{matatu_id}" method="POST" style="display:inline;">
@@ -2177,7 +2898,6 @@ def move_matatu(matatu_id):
                     </button>
 
                 </form>
-
 
                 <!-- Reset -->
 
@@ -2201,7 +2921,6 @@ def move_matatu(matatu_id):
 
         </html>
     """
-
 
 @app.route("/reset-matatu/<int:matatu_id>")
 def reset_matatu(matatu_id):
@@ -2284,7 +3003,6 @@ def gps_test():
             <strong>{distance:.2f} metres</strong>
         </p>
     """
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

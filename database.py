@@ -8,11 +8,10 @@ DATABASE = os.environ.get("SMART_MATATU_DB", "smart_matatu.db")
 def get_db_connection():
     connection = sqlite3.connect(DATABASE)
     connection.row_factory = sqlite3.Row
-    return connection
 
-def get_db_connection():
-    connection = sqlite3.connect(DATABASE)
-    connection.row_factory = sqlite3.Row
+    # Enforce foreign-key constraints on every connection.
+    connection.execute("PRAGMA foreign_keys = ON")
+
     return connection
 
 
@@ -147,7 +146,8 @@ def init_db():
                 idx_passenger_balances_matatu_status
             ON passenger_balances (matatu_id, status)
         """)
-	        # Emergency alerts for passenger issues and proximity warnings.
+
+        # Emergency alerts for passenger issues and proximity warnings.
         connection.execute("""
             CREATE TABLE IF NOT EXISTS emergency_alerts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

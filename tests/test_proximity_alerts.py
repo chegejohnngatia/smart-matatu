@@ -1,5 +1,7 @@
-
+﻿
+import hashlib
 import os
+import secrets
 import sqlite3
 import tempfile
 import unittest
@@ -30,6 +32,17 @@ class ProximityAlertTests(unittest.TestCase):
 
         self.client = smart_matatu_app.app.test_client()
 
+        self.csrf_token = "test-conductor-csrf-token"
+        self.passenger_credentials = {}
+
+        with self.client.session_transaction() as session:
+            session["user_id"] = 1
+            session["full_name"] = "Test Conductor"
+            session["email"] = "conductor@test.com"
+            session["role"] = "conductor"
+            session["matatu_id"] = 1
+            session["csrf_token"] = self.csrf_token
+
     def get_test_connection(self):
         connection = sqlite3.connect(self.db_path)
         connection.row_factory = sqlite3.Row
@@ -43,6 +56,22 @@ class ProximityAlertTests(unittest.TestCase):
                 id INTEGER PRIMARY KEY,
                 registration_number TEXT,
                 route_name TEXT
+            );
+
+            CREATE TABLE conductors (
+                id INTEGER PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE matatu_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conductor_id INTEGER NOT NULL,
+                matatu_id INTEGER NOT NULL,
+                assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                ended_at TEXT
             );
 
             CREATE TABLE matatu_locations (
@@ -65,6 +94,7 @@ class ProximityAlertTests(unittest.TestCase):
                 id INTEGER PRIMARY KEY,
                 matatu_id INTEGER,
                 passenger_token TEXT,
+                access_token_hash TEXT,
                 destination_stage_id INTEGER,
                 status TEXT DEFAULT 'waiting'
             );
@@ -130,6 +160,19 @@ class ProximityAlertTests(unittest.TestCase):
             )
             VALUES (2, 'KBB456B', 'Kisii-Keroka');
 
+            INSERT INTO conductors (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                1, 'Test Conductor', 'conductor@test.com',
+                'test-password-hash', 1
+            );
+
+            INSERT INTO matatu_assignments (
+                conductor_id, matatu_id
+            )
+            VALUES (1, 1);
+
             INSERT INTO matatu_locations (
                 matatu_id, latitude, longitude
             )
@@ -167,18 +210,25 @@ class ProximityAlertTests(unittest.TestCase):
     ):
         connection = self.get_test_connection()
 
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(
+            raw_token.encode('utf-8')
+        ).hexdigest()
+        self.passenger_credentials[journey_id] = raw_token
+
         connection.execute(
             """
             INSERT INTO passenger_destinations (
                 id, matatu_id, passenger_token,
-                destination_stage_id, status
+                access_token_hash, destination_stage_id, status
             )
-            VALUES (?, ?, ?, ?, 'waiting')
+            VALUES (?, ?, ?, ?, ?, 'waiting')
             """,
             (
                 journey_id,
                 matatu_id,
                 passenger_id,
+                token_hash,
                 stage_id
             )
         )
@@ -309,16 +359,21 @@ class ProximityAlertTests(unittest.TestCase):
     ):
         return self.client.post(
             f"/api/passenger/journeys/{journey_id}/emergency-issues",
+            headers={
+                "Authorization": (
+                    f"Bearer {self.passenger_credentials[journey_id]}"
+                )
+            },
             json={
                 "passenger_id": passenger_id,
                 "issue_description": description
             }
         )
 
-    def acknowledge(self, alert_id, matatu_id=1):
+    def acknowledge(self, alert_id):
         return self.client.post(
             f"/api/conductor/emergency-alerts/{alert_id}/acknowledge",
-            json={"matatu_id": matatu_id}
+            headers={"X-CSRF-Token": self.csrf_token}
         )
 
     def test_passenger_can_mark_own_notification_as_read(self):
@@ -437,7 +492,7 @@ class ProximityAlertTests(unittest.TestCase):
         )
 
 
-        
+
         def test_passenger_retrieves_only_own_notifications(self):
             self.add_journey(
                 journey_id=1,
@@ -552,13 +607,13 @@ class ProximityAlertTests(unittest.TestCase):
         )
 
 
-    
+
     def test_recording_payment_creates_confirmation_notification(self):
         self.add_journey(balance_status="pending")
 
         response = self.client.post(
             "/api/conductor/balances/1/pay",
-            json={"matatu_id": 1}
+            headers={"X-CSRF-Token": self.csrf_token}
         )
 
         self.assertEqual(response.status_code, 200)
@@ -602,7 +657,7 @@ class ProximityAlertTests(unittest.TestCase):
             1
         )
 
-    
+
     def test_awaiting_confirmation_near_destination_creates_reminder(self):
         self.add_journey(
             balance_status="awaiting_confirmation"
@@ -724,16 +779,31 @@ class ProximityAlertTests(unittest.TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(self.count_alerts(1), 1)
 
-    def test_manual_issue_rejects_wrong_passenger(self):
+    def test_manual_issue_rejects_access_to_another_journey(self):
         self.add_journey(
+            journey_id=1,
+            passenger_id="P001",
+            balance_status="awaiting_confirmation"
+        )
+        self.add_journey(
+            journey_id=2,
+            passenger_id="P002",
             balance_status="awaiting_confirmation"
         )
 
-        response = self.create_manual_issue(
-            passenger_id="WRONG_ID"
+        response = self.client.post(
+            "/api/passenger/journeys/2/emergency-issues",
+            headers={
+                "Authorization": (
+                    f"Bearer {self.passenger_credentials[1]}"
+                )
+            },
+            json={
+                "issue_description": "Attempt to access another journey."
+            }
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         self.assertEqual(self.count_alerts(), 0)
 
     # Conductor alert retrieval tests
@@ -778,8 +848,7 @@ class ProximityAlertTests(unittest.TestCase):
             "/api/conductor/emergency-alerts/999"
         )
 
-        self.assertEqual(response.status_code, 404)
-
+        self.assertEqual(response.status_code, 403)
     # Conductor acknowledgement tests
 
     def test_acknowledgement_changes_only_alert_status(self):
@@ -836,32 +905,39 @@ class ProximityAlertTests(unittest.TestCase):
         self.add_journey()
         alert_id = self.create_alert(matatu_id=1)
 
-        response = self.acknowledge(
-            alert_id,
-            matatu_id=2
+        connection = self.get_test_connection()
+        connection.execute(
+            """
+            UPDATE matatu_assignments
+            SET matatu_id = 2
+            WHERE conductor_id = 1 AND ended_at IS NULL
+            """
         )
+        connection.commit()
+        connection.close()
+
+        response = self.acknowledge(alert_id)
 
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(
-            self.get_alert(alert_id)["status"],
-            "active"
-        )
 
-    def test_acknowledgement_requires_valid_vehicle_id(self):
-        self.add_journey()
-        alert_id = self.create_alert()
-
-        response = self.client.post(
-            f"/api/conductor/emergency-alerts/{alert_id}/acknowledge",
-            json={"matatu_id": "not-a-number"}
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            self.get_alert(alert_id)["status"],
-            "active"
-        )
+        alert = self.get_alert(alert_id)
+        self.assertEqual(alert["status"], "active")
 
 
+    def test_acknowledgement_ignores_client_supplied_vehicle_id(self):
+            self.add_journey()
+            alert_id = self.create_alert(matatu_id=1)
+
+            response = self.client.post(
+                f"/api/conductor/emergency-alerts/{alert_id}/acknowledge",
+                json={"matatu_id": "not-a-number"},
+                headers={"X-CSRF-Token": self.csrf_token}
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                self.get_alert(alert_id)["status"],
+                "acknowledged"
+            )
 if __name__ == "__main__":
     unittest.main()
