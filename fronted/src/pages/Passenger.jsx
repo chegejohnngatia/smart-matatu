@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Bus, History, ChevronUp, ChevronDown } from "lucide-react";
+import { Bus, History, ChevronUp, ChevronDown, QrCode, X } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 import { api, ApiError } from "../api/client";
 
 export default function Passenger() {
@@ -20,6 +21,9 @@ export default function Passenger() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const scannerRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +58,48 @@ export default function Passenger() {
       active = false;
     };
   }, [matatuId]);
+
+  useEffect(() => {
+    if (matatuId || !scanOpen) return undefined;
+
+    const scanner = new Html5Qrcode("passenger-qr-reader");
+    scannerRef.current = scanner;
+    setScanError("");
+
+    const handleScan = (value) => {
+      const match = value.match(/\/passenger\/(\d+)(?:[/?#]|$)/);
+      const scannedMatatuId = match?.[1] || value.trim().match(/^\d+$/)?.[0];
+
+      if (!scannedMatatuId) {
+        setScanError("This QR code is not a Smart Matatu vehicle code.");
+        return;
+      }
+
+      setScanOpen(false);
+      navigate(`/passenger/${scannedMatatuId}`);
+    };
+
+    scanner
+      .start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        handleScan,
+        () => {},
+      )
+      .catch(() =>
+        setScanError(
+          "Camera access was unavailable. Check your browser permissions.",
+        ),
+      );
+
+    return () => {
+      if (scanner.isScanning) {
+        scanner.stop().catch(() => {});
+      }
+      scanner.clear().catch(() => {});
+      scannerRef.current = null;
+    };
+  }, [matatuId, navigate, scanOpen]);
 
   const register = async (e) => {
     e.preventDefault();
@@ -91,6 +137,37 @@ export default function Passenger() {
                 Select a vehicle to view its live route.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setScanOpen(true)}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 rounded-lg p-3 text-sm font-medium"
+            >
+              <QrCode size={18} /> Scan vehicle QR code
+            </button>
+            {scanOpen && (
+              <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold">Scan QR code</p>
+                  <button
+                    type="button"
+                    onClick={() => setScanOpen(false)}
+                    aria-label="Close QR scanner"
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div
+                  id="passenger-qr-reader"
+                  className="overflow-hidden rounded-md"
+                />
+                {scanError && (
+                  <p className="mt-2 text-xs text-rose-400" role="alert">
+                    {scanError}
+                  </p>
+                )}
+              </div>
+            )}
             {loading && (
               <p className="text-sm text-slate-400">Loading vehicles...</p>
             )}

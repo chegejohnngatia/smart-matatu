@@ -28,6 +28,7 @@ FRONTEND_ORIGINS = {
     ).split(",")
     if origin.strip()
 }
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
 
 
 @app.after_request
@@ -250,7 +251,7 @@ def generate_qr(matatu_id):
     local_ip = get_local_ip()
 
     # Create passenger URL for this specific matatu
-    qr_url = f"http://{local_ip}:5000/passenger/{matatu_id}"
+    qr_url = f"{FRONTEND_URL}/passenger/{matatu_id}"
 
     # Generate QR code
     qr = qrcode.make(qr_url)
