@@ -1,6 +1,7 @@
+import os
 import sqlite3
 
-DATABASE = "smart_matatu.db"
+DATABASE = os.getenv("DATABASE_PATH", "smart_matatu.db")
 
 
 def get_db_connection():
@@ -46,9 +47,19 @@ def init_db():
             matatu_id INTEGER PRIMARY KEY,
             latitude REAL NOT NULL,
             longitude REAL NOT NULL,
-            current_stage_sequence INTEGER DEFAULT 0
+            current_stage_sequence INTEGER DEFAULT 0,
+            speed REAL DEFAULT 20
         )
     """)
+
+    location_columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(matatu_locations)")
+    }
+    if "speed" not in location_columns:
+        connection.execute(
+            "ALTER TABLE matatu_locations ADD COLUMN speed REAL DEFAULT 20"
+        )
 
     connection.commit()
     connection.close()

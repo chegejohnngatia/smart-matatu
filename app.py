@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for,send_from_directory
+from flask import Flask, jsonify, render_template, request, redirect, url_for, send_from_directory
 from database import init_db, get_db_connection
 from gps import calculate_distance
 import socket
@@ -18,6 +18,154 @@ app = Flask(
     static_folder=os.path.join(FRONTEND_DIST, "assets"),
     static_url_path="/assets"
 )
+
+init_db()
+
+FRONTEND_ORIGINS = {
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+}
+
+
+@app.after_request
+def add_api_cors_headers(response):
+    origin = request.headers.get("Origin")
+    if request.path.startswith("/api/") and origin in FRONTEND_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    if request.path.startswith("/api/"):
+        return jsonify({"error": {"message": "Resource not found"}}), 404
+    return error
+
+
+def row_to_dict(row):
+    return dict(row) if row else None
+
+
+@app.route("/api/matatus", methods=["GET"])
+def api_matatus():
+    connection = get_db_connection()
+    matatus = connection.execute(
+        "SELECT id, registration_number, route_name FROM matatus ORDER BY id"
+    ).fetchall()
+    connection.close()
+    return jsonify([row_to_dict(matatu) for matatu in matatus])
+
+
+@app.route("/api/passenger/trip-info", methods=["GET"])
+def api_passenger_trip_info():
+    matatu_id = request.args.get("matatu_id", type=int)
+    if matatu_id is None:
+        return jsonify({"error": {"message": "matatu_id is required"}}), 400
+
+    connection = get_db_connection()
+    matatu = connection.execute(
+        "SELECT id, registration_number, route_name FROM matatus WHERE id = ?",
+        (matatu_id,),
+    ).fetchone()
+    if matatu is None:
+        connection.close()
+        return jsonify({"error": {"message": "Matatu not found"}}), 404
+
+    stages = connection.execute(
+        """
+        SELECT id, name, sequence_number
+        FROM stages
+        WHERE route_name = ?
+        ORDER BY sequence_number
+        """,
+        (matatu["route_name"],),
+    ).fetchall()
+    connection.close()
+    return jsonify({
+        "id": matatu["id"],
+        "plate": matatu["registration_number"],
+        "route": matatu["route_name"],
+        "code": f"MATATU-{matatu['id']:03d}",
+        "stages": [row_to_dict(stage) for stage in stages],
+    })
+
+
+@app.route("/api/passenger/history", methods=["GET"])
+def api_passenger_history():
+    matatu_id = request.args.get("matatu_id", type=int)
+    connection = get_db_connection()
+    query = """
+        SELECT passenger_destinations.id, passenger_destinations.passenger_token,
+               passenger_destinations.status, stages.name AS destination
+        FROM passenger_destinations
+        JOIN stages ON stages.id = passenger_destinations.destination_stage_id
+    """
+    parameters = ()
+    if matatu_id is not None:
+        query += " WHERE passenger_destinations.matatu_id = ?"
+        parameters = (matatu_id,)
+    query += " ORDER BY passenger_destinations.id DESC"
+    history = connection.execute(query, parameters).fetchall()
+    connection.close()
+    return jsonify([row_to_dict(item) for item in history])
+
+
+@app.route("/api/passenger/register", methods=["POST"])
+def api_passenger_register():
+    payload = request.get_json(silent=True) or {}
+    matatu_id = payload.get("matatu_id")
+    destination_stage_id = payload.get("destination_stage_id")
+    if not isinstance(matatu_id, int) or not isinstance(destination_stage_id, int):
+        return jsonify({
+            "error": {
+                "message": "matatu_id and destination_stage_id are required",
+                "fields": {
+                    "matatu_id": "Enter a valid vehicle.",
+                    "destination_stage_id": "Choose a valid destination.",
+                },
+            }
+        }), 422
+
+    connection = get_db_connection()
+    matatu = connection.execute(
+        "SELECT route_name FROM matatus WHERE id = ?", (matatu_id,)
+    ).fetchone()
+    stage = connection.execute(
+        "SELECT id, name FROM stages WHERE id = ? AND route_name = ?",
+        (destination_stage_id, matatu["route_name"] if matatu else ""),
+    ).fetchone()
+    if matatu is None or stage is None:
+        connection.close()
+        return jsonify({"error": {"message": "Destination is not on this route"}}), 422
+
+    cursor = connection.execute(
+        """
+        INSERT INTO passenger_destinations
+            (matatu_id, passenger_token, destination_stage_id)
+        VALUES (?, ?, ?)
+        """,
+        (matatu_id, "TEMP", destination_stage_id),
+    )
+    passenger_id = cursor.lastrowid
+    passenger_token = f"P{passenger_id:03d}"
+    connection.execute(
+        "UPDATE passenger_destinations SET passenger_token = ? WHERE id = ?",
+        (passenger_token, passenger_id),
+    )
+    connection.commit()
+    connection.close()
+    return jsonify({
+        "id": passenger_id,
+        "passenger_token": passenger_token,
+        "destination": stage["name"],
+        "status": "waiting",
+    }), 201
 
 
 def get_local_ip():
