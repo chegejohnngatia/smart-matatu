@@ -1,141 +1,153 @@
-import { createContext, useContext, useState } from 'react'
+
+import { createContext, useContext, useEffect, useState } from 'react'
 
 const AuthContext = createContext(null)
 
-const DEMO_USERS = [
-  {
-    id: 'demo-admin',
-    name: 'Demo Administrator',
-    email: 'admin@smartmatatu.test',
-    password: 'AdminDemo123!',
-    role: 'admin',
-  },
-  {
-    id: 'demo-conductor',
-    name: 'Demo Conductor',
-    email: 'conductor@smartmatatu.test',
-    password: 'ConductorDemo123!',
-    role: 'conductor',
-  },
-]
-
-const USERS_KEY = 'smartMatatuDemoUsers'
-const SESSION_KEY = 'smartMatatuDemoSession'
-
-function getInitialUsers() {
-  try {
-    const stored = sessionStorage.getItem(USERS_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    // Use demo accounts if browser storage is unavailable.
-  }
-
-  return DEMO_USERS
-}
-
-function getInitialSession() {
-  try {
-    return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null
-  } catch {
-    return null
-  }
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(getInitialUsers)
-  const [currentUser, setCurrentUser] = useState(getInitialSession)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [csrfToken, setCsrfToken] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
-  function login(email, password) {
-    const user = users.find(
-      (item) =>
-        item.email.toLowerCase() === email.trim().toLowerCase() &&
-        item.password === password,
-    )
+  // Restore the authenticated Flask session when React starts.
+  useEffect(() => {
+    let cancelled = false
 
-    if (!user) {
-      return { success: false, message: 'Invalid email or password.' }
-    }
+    async function restoreSession() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+        })
 
-    const sessionUser = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    }
+        const data = await response.json()
 
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser))
-    setCurrentUser(sessionUser)
+        if (!response.ok) {
+          if (!cancelled) {
+            setCurrentUser(null)
+            setCsrfToken(null)
+          }
+          return
+        }
 
-    return { success: true, user: sessionUser }
-  }
+        if (!cancelled) {
+          setCurrentUser({
+            id: data.user.id,
+            name: data.user.full_name,
+            email: data.user.email,
+            role: data.user.role,
+            matatu: data.user.matatu || null,
+          })
+          setCsrfToken(data.csrf_token || null)
+        }
+      } catch (error) {
+        console.error('Session restoration failed:', error)
 
-  function logout() {
-    sessionStorage.removeItem(SESSION_KEY)
-    setCurrentUser(null)
-  }
-
-  function createUser({ name, email, password, role }) {
-    if (!currentUser || currentUser.role !== 'admin') {
-      return {
-        success: false,
-        message: 'Administrator access required.',
+        if (!cancelled) {
+          setCurrentUser(null)
+          setCsrfToken(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthLoading(false)
+        }
       }
     }
 
-    if (role !== 'conductor') {
-      return {
-        success: false,
-        message: 'Administrators can create conductor accounts only.',
-      }
+    restoreSession()
+
+    return () => {
+      cancelled = true
     }
+  }, [])
 
-    const normalizedEmail = email.trim().toLowerCase()
-
-    if (
-      users.some(
-        (user) => user.email.trim().toLowerCase() === normalizedEmail,
-      )
-    ) {
-      return {
-        success: false,
-        message: 'An account with this email already exists.',
-      }
-    }
-
-    const updatedUsers = [
-      ...users,
-      {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        email: email.trim(),
-        password,
-        role,
-      },
-    ]
-
+  // Authenticate using the Flask backend.
+  async function login(email, password) {
     try {
-      sessionStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers))
-    } catch {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Login failed.',
+        }
+      }
+
+      const sessionUser = {
+        id: data.user.id,
+        name: data.user.full_name,
+        email: data.user.email,
+        role: data.user.role,
+        matatu: data.user.matatu || null,
+      }
+
+      setCurrentUser(sessionUser)
+      setCsrfToken(data.csrf_token || null)
+
+      return {
+        success: true,
+        user: sessionUser,
+      }
+    } catch (error) {
+      console.error('Backend login failed:', error)
+
       return {
         success: false,
-        message: 'Could not save the demo account in this browser session.',
+        message: 'Unable to connect to the server. Please try again.',
       }
     }
+  }
 
-    setUsers(updatedUsers)
+  // End the authenticated Flask session.
+  async function logout() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfToken || '',
+        },
+      })
 
-    return {
-      success: true,
-      message: 'Demo account created successfully.',
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        console.error(
+          'Backend logout failed:',
+          data.message || response.status
+        )
+        return false
+      }
+
+      setCurrentUser(null)
+      setCsrfToken(null)
+
+      return true
+    } catch (error) {
+      console.error('Logout request failed:', error)
+      return false
     }
   }
 
   return (
     <AuthContext.Provider
-      value={{ currentUser, login, logout, createUser }}
+      value={{
+        currentUser,
+        csrfToken,
+        authLoading,
+        login,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

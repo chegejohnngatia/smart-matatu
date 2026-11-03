@@ -2,7 +2,12 @@
 import sqlite3
 import os
 
-DATABASE = os.environ.get("SMART_MATATU_DB", "smart_matatu.db")
+DATABASE = os.path.abspath(
+    os.environ.get(
+        "SMART_MATATU_DB",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "smart_matatu.db")
+    )
+)
 
 
 def get_db_connection():
@@ -27,6 +32,53 @@ def init_db():
                 route_name TEXT NOT NULL
             )
         """)
+
+    # Conductor accounts
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS conductors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+                    CHECK (is_active IN (0, 1)),
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+                passport_photo TEXT
+            )
+        """)
+
+        # Conductor-to-matatu assignments
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS matatu_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conductor_id INTEGER NOT NULL,
+                matatu_id INTEGER NOT NULL,
+                assigned_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+                ended_at TEXT,
+
+                FOREIGN KEY (conductor_id)
+                    REFERENCES conductors(id),
+
+                FOREIGN KEY (matatu_id)
+                    REFERENCES matatus(id),
+
+                CHECK (
+                    ended_at IS NULL
+                    OR ended_at >= assigned_at
+                )
+            )
+        """)
+
+        # A conductor can have only one active matatu assignment.
+        connection.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+                one_active_assignment_per_conductor
+            ON matatu_assignments (conductor_id)
+            WHERE ended_at IS NULL
+        """)
+
 
         # Route stages
         connection.execute("""
@@ -124,22 +176,31 @@ def init_db():
         # Passenger balances owed by the conductor.
         # Paid records are retained for history.
         connection.execute("""
-            CREATE TABLE IF NOT EXISTS passenger_balances (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                matatu_id INTEGER NOT NULL,
-                passenger_destination_id INTEGER NOT NULL,
-                amount REAL NOT NULL CHECK (amount > 0),
-                status TEXT NOT NULL DEFAULT 'pending'
-                    CHECK (status IN ('pending', 'paid')),
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                paid_at TEXT,
-                FOREIGN KEY (matatu_id)
-                    REFERENCES matatus(id),
-                FOREIGN KEY (passenger_destination_id)
-                    REFERENCES passenger_destinations(id)
-            )
-        """)
-
+                    CREATE TABLE IF NOT EXISTS passenger_balances (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        matatu_id INTEGER NOT NULL,
+                        passenger_destination_id INTEGER NOT NULL,
+                        amount REAL NOT NULL CHECK (amount > 0),
+                        status TEXT NOT NULL DEFAULT 'pending'
+                            CHECK (
+                                status IN (
+                                    'pending',
+                                    'awaiting_confirmation',
+                                    'confirmed'
+                                )
+                            ),
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        paid_at TEXT,
+                        confirmed_at TEXT,
+                        paid_by_conductor_id INTEGER,
+                        FOREIGN KEY (matatu_id)
+                            REFERENCES matatus(id),
+                        FOREIGN KEY (passenger_destination_id)
+                            REFERENCES passenger_destinations(id),
+                        FOREIGN KEY (paid_by_conductor_id)
+                            REFERENCES conductors(id)
+                    )
+                """)
         # Speed up queries for active balances belonging to a matatu.
         connection.execute("""
             CREATE INDEX IF NOT EXISTS
@@ -160,10 +221,13 @@ def init_db():
                     CHECK (status IN ('active', 'acknowledged')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 acknowledged_at TEXT,
+                acknowledged_by_conductor_id INTEGER,
                 FOREIGN KEY (matatu_id)
                     REFERENCES matatus(id),
                 FOREIGN KEY (passenger_destination_id)
-                    REFERENCES passenger_destinations(id)
+                    REFERENCES passenger_destinations(id),
+                FOREIGN KEY (acknowledged_by_conductor_id)
+                    REFERENCES conductors(id)
             )
         """)
 

@@ -105,8 +105,10 @@ class ProximityAlertTests(unittest.TestCase):
                 passenger_destination_id INTEGER,
                 amount REAL,
                 status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 paid_at TEXT,
-                confirmed_at TEXT
+                confirmed_at TEXT,
+                paid_by_conductor_id INTEGER
             );
 
             CREATE TABLE passenger_notifications (
@@ -143,7 +145,8 @@ class ProximityAlertTests(unittest.TestCase):
                         status IN ('active', 'acknowledged')
                     ),
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                acknowledged_at TEXT
+                acknowledged_at TEXT,
+                acknowledged_by_conductor_id INTEGER
             );
 
             CREATE UNIQUE INDEX one_proximity_alert_per_journey
@@ -851,6 +854,7 @@ class ProximityAlertTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
     # Conductor acknowledgement tests
 
+    
     def test_acknowledgement_changes_only_alert_status(self):
         self.add_journey(
             balance_status="awaiting_confirmation"
@@ -859,20 +863,57 @@ class ProximityAlertTests(unittest.TestCase):
             alert_type="passenger_issue"
         )
 
+        # First conductor acknowledges the alert.
         response = self.acknowledge(alert_id)
 
         self.assertEqual(response.status_code, 200)
 
         data = response.get_json()
+
         self.assertEqual(data["status"], "acknowledged")
+        self.assertEqual(
+            data["acknowledged_by_conductor_id"],
+            1
+        )
         self.assertFalse(data["balance_changed"])
         self.assertFalse(data["issue_resolved"])
 
+        # Verify the database recorded the acknowledgement.
         alert = self.get_alert(alert_id)
+
         self.assertEqual(alert["status"], "acknowledged")
         self.assertIsNotNone(alert["acknowledged_at"])
+        self.assertEqual(
+            alert["acknowledged_by_conductor_id"],
+            1
+        )
 
+        # Verify the GET endpoint returns the conductor's identity.
+        history_response = self.client.get(
+            "/api/conductor/emergency-alerts/1"
+        )
+
+        self.assertEqual(history_response.status_code, 200)
+
+        history = history_response.get_json()["history"]
+
+        self.assertEqual(len(history), 1)
+        self.assertEqual(
+            history[0]["alert_id"],
+            alert_id
+        )
+        self.assertEqual(
+            history[0]["acknowledged_by_conductor_id"],
+            1
+        )
+        self.assertEqual(
+            history[0]["acknowledged_by_conductor_name"],
+            "Test Conductor"
+        )
+
+        # Verify acknowledging the alert did not change the balance.
         connection = self.get_test_connection()
+
         balance = connection.execute(
             """
             SELECT status
@@ -880,12 +921,80 @@ class ProximityAlertTests(unittest.TestCase):
             WHERE passenger_destination_id = 1
             """
         ).fetchone()
+
         connection.close()
 
         self.assertEqual(
             balance["status"],
             "awaiting_confirmation"
         )
+
+
+    def test_second_conductor_sees_shared_alert_acknowledgement(self):
+        self.add_journey(journey_id=1)
+
+        alert_id = self.create_alert(
+            journey_id=1,
+            status="active"
+        )
+
+        connection = self.get_test_connection()
+
+        connection.execute("""
+            INSERT INTO conductors (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                2, 'Second Conductor', 'second@test.com',
+                'test-password-hash', 1
+            )
+        """)
+
+        connection.execute("""
+            INSERT INTO matatu_assignments (
+                conductor_id, matatu_id
+            )
+            VALUES (2, 1)
+        """)
+
+        connection.commit()
+        connection.close()
+
+        # First conductor acknowledges the alert.
+        first_response = self.acknowledge(alert_id)
+
+        self.assertEqual(first_response.status_code, 200)
+
+        # Switch to the second conductor.
+        with self.client.session_transaction() as session:
+            session["user_id"] = 2
+            session["full_name"] = "Second Conductor"
+            session["email"] = "second@test.com"
+            session["role"] = "conductor"
+            session["matatu_id"] = 1
+
+        response = self.client.get(
+            "/api/conductor/emergency-alerts/1"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+
+        self.assertEqual(data["unresolved_count"], 0)
+        self.assertEqual(len(data["active_alerts"]), 0)
+        self.assertEqual(len(data["history"]), 1)
+
+        self.assertEqual(
+            data["history"][0]["alert_id"],
+            alert_id
+        )
+
+        self.assertEqual(
+            data["history"][0]["status"],
+            "acknowledged"
+        )
+    
 
     def test_duplicate_acknowledgement_is_rejected(self):
         self.add_journey()
@@ -939,5 +1048,159 @@ class ProximityAlertTests(unittest.TestCase):
                 self.get_alert(alert_id)["status"],
                 "acknowledged"
             )
+
+
+    def test_two_conductors_share_matatu_balances(self):
+        self.add_journey(
+            journey_id=1,
+            passenger_id="P001",
+            balance_status="pending"
+        )
+
+        connection = self.get_test_connection()
+
+        connection.execute("""
+            INSERT INTO conductors (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                2, 'Second Conductor', 'second@test.com',
+                'test-password-hash', 1
+            )
+        """)
+
+        connection.execute("""
+            INSERT INTO matatu_assignments (
+                conductor_id, matatu_id
+            )
+            VALUES (2, 1)
+        """)
+
+        connection.commit()
+        connection.close()
+
+        # Authenticate as the second conductor.
+        with self.client.session_transaction() as session:
+            session["user_id"] = 2
+            session["full_name"] = "Second Conductor"
+            session["email"] = "second@test.com"
+            session["role"] = "conductor"
+            session["matatu_id"] = 1
+
+        response = self.client.get(
+            "/api/conductor/balances/1"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+
+        self.assertEqual(len(data["pending_balances"]), 1)
+        self.assertEqual(
+            data["pending_balances"][0]["passenger_id"],
+            "P001"
+        )
+
+
+    def test_conductor_cannot_access_another_matatus_balances(self):
+        self.add_journey(balance_status="pending")
+
+        response = self.client.get(
+            "/api/conductor/balances/2"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+
+    
+    def test_second_conductor_sees_shared_payment_status(self):
+        self.add_journey(
+            journey_id=1,
+            passenger_id="P001",
+            balance_status="pending"
+        )
+
+        connection = self.get_test_connection()
+
+        connection.execute("""
+            INSERT INTO conductors (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                2, 'Second Conductor', 'second@test.com',
+                'test-password-hash', 1
+            )
+        """)
+
+        connection.execute("""
+            INSERT INTO matatu_assignments (
+                conductor_id, matatu_id
+            )
+            VALUES (2, 1)
+        """)
+
+        connection.commit()
+        connection.close()
+
+        # First conductor records the payment.
+        payment_response = self.client.post(
+            "/api/conductor/balances/1/pay",
+            headers={"X-CSRF-Token": self.csrf_token}
+        )
+
+        self.assertEqual(payment_response.status_code, 200)
+
+        payment_data = payment_response.get_json()
+
+        self.assertEqual(
+            payment_data["status"],
+            "awaiting_confirmation"
+        )
+
+        # Verify the first conductor is recorded as the payer.
+        self.assertEqual(
+            payment_data["paid_by_conductor_id"],
+            1
+        )
+
+        # Switch to the second conductor.
+        with self.client.session_transaction() as session:
+            session["user_id"] = 2
+            session["full_name"] = "Second Conductor"
+            session["email"] = "second@test.com"
+            session["role"] = "conductor"
+            session["matatu_id"] = 1
+
+        # Second conductor retrieves the shared matatu balances.
+        response = self.client.get("/api/conductor/balances/1")
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+
+        self.assertEqual(
+            len(data["awaiting_confirmation"]),
+            1
+        )
+
+        balance = data["awaiting_confirmation"][0]
+
+        self.assertEqual(
+            balance["passenger_id"],
+            "P001"
+        )
+
+        # Verify the original conductor's identity remains visible.
+        self.assertEqual(
+            balance["paid_by_conductor_id"],
+            1
+        )
+
+        self.assertEqual(
+            balance["paid_by_conductor_name"],
+            "Test Conductor"
+        )
+
+    
 if __name__ == "__main__":
     unittest.main()

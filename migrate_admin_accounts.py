@@ -3,9 +3,14 @@ import os
 import sqlite3
 from contextlib import closing
 
-DATABASE = os.environ.get(
-    "SMART_MATATU_DB",
-    "smart_matatu.db"
+DATABASE = os.path.abspath(
+    os.environ.get(
+        "SMART_MATATU_DB",
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "smart_matatu.db"
+        )
+    )
 )
 
 

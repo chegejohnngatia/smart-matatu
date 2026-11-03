@@ -634,7 +634,7 @@ def create_conductor():
 
         return jsonify({
             "success": False,
-            "message": "The email may already exist, or the selected matatu is already assigned."
+            "message": "A conductor with this email already exists, or the conductor already has an active matatu assignment."
         }), 409
 
     except Exception:
@@ -1067,10 +1067,14 @@ def get_conductor_emergency_alerts(matatu_id):
                 ea.message,
                 ea.status,
                 ea.created_at,
-                ea.acknowledged_at
+                ea.acknowledged_at,
+                ea.acknowledged_by_conductor_id,
+                c.full_name AS acknowledged_by_conductor_name
             FROM emergency_alerts AS ea
             JOIN passenger_destinations AS pd
                 ON pd.id = ea.passenger_destination_id
+            LEFT JOIN conductors AS c
+                ON c.id = ea.acknowledged_by_conductor_id
             WHERE ea.matatu_id = ?
             ORDER BY
                 CASE WHEN ea.status = 'active' THEN 0 ELSE 1 END,
@@ -1119,12 +1123,14 @@ def get_conductor_emergency_alerts(matatu_id):
 @csrf_required
 def acknowledge_emergency_alert(alert_id):
     matatu_id = session["matatu_id"]
+    conductor_id = session["user_id"]
 
     try:
         matatu_id = int(matatu_id)
+        conductor_id = int(conductor_id)
     except (TypeError, ValueError):
         return jsonify({
-            "error": "A valid vehicle ID is required."
+            "error": "Valid vehicle and conductor IDs are required."
         }), 400
 
     connection = get_db_connection()
@@ -1157,12 +1163,13 @@ def acknowledge_emergency_alert(alert_id):
             """
             UPDATE emergency_alerts
             SET status = 'acknowledged',
-                acknowledged_at = CURRENT_TIMESTAMP
+                acknowledged_at = CURRENT_TIMESTAMP,
+                acknowledged_by_conductor_id = ?
             WHERE id = ?
               AND matatu_id = ?
               AND status = 'active'
             """,
-            (alert_id, matatu_id)
+            (conductor_id, alert_id, matatu_id)
         )
 
         if cursor.rowcount != 1:
@@ -1177,6 +1184,7 @@ def acknowledge_emergency_alert(alert_id):
             "message": "Alert acknowledged. It remains available in history.",
             "alert_id": alert_id,
             "status": "acknowledged",
+            "acknowledged_by_conductor_id": conductor_id,
             "balance_changed": False,
             "issue_resolved": False
         }), 200
@@ -1354,10 +1362,14 @@ def get_conductor_balances(matatu_id):
                 pb.status,
                 pb.created_at,
                 pb.paid_at,
-                pb.confirmed_at
+                pb.confirmed_at,
+                pb.paid_by_conductor_id,
+                c.full_name AS paid_by_conductor_name
             FROM passenger_balances AS pb
             JOIN passenger_destinations AS pd
                 ON pd.id = pb.passenger_destination_id
+            LEFT JOIN conductors AS c
+                ON c.id = pb.paid_by_conductor_id
             WHERE pb.matatu_id = ?
             ORDER BY pb.id DESC
         """, (matatu_id,)).fetchall()
@@ -1387,6 +1399,8 @@ def get_conductor_balances(matatu_id):
 
     finally:
         connection.close()
+
+# ---------------- END PASSENGER BALANCE API ----------------
 
 @app.route("/api/conductor/balances/<int:matatu_id>", methods=["POST"])
 @conductor_required
@@ -1514,18 +1528,24 @@ def add_conductor_balance(matatu_id):
 @csrf_required
 def mark_conductor_balance_paid(balance_id):
     matatu_id = session["matatu_id"]
+    conductor_id = session["user_id"]
 
-    if isinstance(matatu_id, bool):
-        return jsonify({"error": "A valid vehicle ID is required."}), 400
+    if isinstance(matatu_id, bool) or isinstance(conductor_id, bool):
+        return jsonify({
+            "error": "Valid vehicle and conductor IDs are required."
+        }), 400
 
     try:
         matatu_id = int(matatu_id)
+        conductor_id = int(conductor_id)
 
-        if matatu_id <= 0:
+        if matatu_id <= 0 or conductor_id <= 0:
             raise ValueError
 
     except (TypeError, ValueError):
-        return jsonify({"error": "A valid vehicle ID is required."}), 400
+        return jsonify({
+            "error": "Valid vehicle and conductor IDs are required."
+        }), 400
 
     connection = get_db_connection()
 
@@ -1563,11 +1583,12 @@ def mark_conductor_balance_paid(balance_id):
         cursor = connection.execute("""
             UPDATE passenger_balances
             SET status = 'awaiting_confirmation',
-                paid_at = CURRENT_TIMESTAMP
+                paid_at = CURRENT_TIMESTAMP,
+                paid_by_conductor_id = ?
             WHERE id = ?
               AND matatu_id = ?
               AND status = 'pending'
-        """, (balance_id, matatu_id))
+        """, (conductor_id, balance_id, matatu_id))
 
         if cursor.rowcount != 1:
             connection.rollback()
@@ -1601,7 +1622,8 @@ def mark_conductor_balance_paid(balance_id):
         return jsonify({
             "message": "Repayment recorded. Awaiting passenger confirmation.",
             "balance_id": balance_id,
-            "status": "awaiting_confirmation"
+            "status": "awaiting_confirmation",
+            "paid_by_conductor_id": conductor_id
         }), 200
 
     except Exception:

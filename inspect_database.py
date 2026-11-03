@@ -1,41 +1,77 @@
+
+import os
 import sqlite3
 from pathlib import Path
 
-database_path = Path(__file__).resolve().parent / "smart_matatu.db"
-connection = sqlite3.connect(database_path)
 
-try:
-    for table in ("conductors", "matatu_assignments"):
-        print(f"\n{table.upper()} INDEXES")
-        print("=" * (len(table) + 8))
+def inspect_database(database_path):
+    database_path = Path(database_path).resolve()
 
-        indexes = connection.execute(
-            f"PRAGMA index_list({table})"
-        ).fetchall()
+    if not database_path.is_file():
+        raise FileNotFoundError(
+            f"Database not found: {database_path}"
+        )
 
-        for index in indexes:
-            print(f"\nIndex: {index[1]}")
-            print(f"Unique: {bool(index[2])}")
+    connection = sqlite3.connect(
+        database_path.as_uri() + "?mode=ro",
+        uri=True
+    )
 
-            details = connection.execute(
-                f"PRAGMA index_info({index[1]})"
+    try:
+        print(f"Database: {database_path}")
+
+        for table in ("conductors", "matatu_assignments"):
+            print(f"\n{table.upper()} INDEXES")
+            print("=" * (len(table) + 8))
+
+            indexes = connection.execute(
+                f"PRAGMA index_list({table})"
             ).fetchall()
 
-            print("Columns:", [column[2] for column in details])
+            for index in indexes:
+                print(f"\nIndex: {index[1]}")
+                print(f"Unique: {bool(index[2])}")
 
-    print("\nASSIGNMENT TABLE SQL")
-    print("====================")
+                details = connection.execute(
+                    f"PRAGMA index_info({index[1]})"
+                ).fetchall()
 
-    schema = connection.execute(
-        """
-        SELECT sql
-        FROM sqlite_master
-        WHERE type = 'table'
-          AND name = 'matatu_assignments'
-        """
-    ).fetchone()
+                print(
+                    "Columns:",
+                    [column[2] for column in details]
+                )
 
-    print(schema[0] if schema else "Table not found")
+        print("\nASSIGNMENT TABLE SQL")
+        print("====================")
 
-finally:
-    connection.close()
+        schema = connection.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name = 'matatu_assignments'
+            """
+        ).fetchone()
+
+        print(schema[0] if schema else "Table not found")
+
+        print("\nDATABASE INTEGRITY")
+        print("==================")
+        print(connection.execute("PRAGMA integrity_check").fetchone()[0])
+
+    finally:
+        connection.close()
+
+
+if __name__ == "__main__":
+    database_path = os.path.abspath(
+        os.environ.get(
+            "SMART_MATATU_DB",
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "smart_matatu.db"
+            )
+        )
+    )
+
+    inspect_database(database_path)

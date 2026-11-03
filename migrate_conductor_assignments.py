@@ -1,10 +1,16 @@
+
 import os
 import sqlite3
 from contextlib import closing
 
-DATABASE = os.environ.get(
-    "SMART_MATATU_DB",
-    "smart_matatu.db"
+DATABASE = os.path.abspath(
+    os.environ.get(
+        "SMART_MATATU_DB",
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "smart_matatu.db"
+        )
+    )
 )
 
 
@@ -50,6 +56,7 @@ def migrate():
                 )
             """)
 
+            # A conductor can have only one active matatu assignment.
             connection.execute("""
                 CREATE UNIQUE INDEX IF NOT EXISTS
                     one_active_assignment_per_conductor
@@ -57,11 +64,11 @@ def migrate():
                 WHERE ended_at IS NULL
             """)
 
+            # Allow multiple active conductors on the same matatu.
+            # Remove the previous restriction if it exists.
             connection.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS
+                DROP INDEX IF EXISTS
                     one_active_assignment_per_matatu
-                ON matatu_assignments (matatu_id)
-                WHERE ended_at IS NULL
             """)
 
             connection.commit()
