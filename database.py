@@ -33,7 +33,7 @@ def init_db():
             )
         """)
 
-    # Conductor accounts
+        # Conductor accounts
         connection.execute("""
             CREATE TABLE IF NOT EXISTS conductors (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +47,20 @@ def init_db():
                 passport_photo TEXT
             )
         """)
+
+        # Safely migrate conductor accounts.
+        # Preserve existing conductor records and historical references.
+        columns = connection.execute(
+            "PRAGMA table_info(conductors)"
+        ).fetchall()
+
+        column_names = {column["name"] for column in columns}
+
+        if "deleted_at" not in column_names:
+            connection.execute("""
+                ALTER TABLE conductors
+                ADD COLUMN deleted_at TEXT
+            """)
 
         # Conductor-to-matatu assignments
         connection.execute("""
@@ -78,7 +92,6 @@ def init_db():
             ON matatu_assignments (conductor_id)
             WHERE ended_at IS NULL
         """)
-
 
         # Route stages
         connection.execute("""
@@ -176,31 +189,32 @@ def init_db():
         # Passenger balances owed by the conductor.
         # Paid records are retained for history.
         connection.execute("""
-                    CREATE TABLE IF NOT EXISTS passenger_balances (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        matatu_id INTEGER NOT NULL,
-                        passenger_destination_id INTEGER NOT NULL,
-                        amount REAL NOT NULL CHECK (amount > 0),
-                        status TEXT NOT NULL DEFAULT 'pending'
-                            CHECK (
-                                status IN (
-                                    'pending',
-                                    'awaiting_confirmation',
-                                    'confirmed'
-                                )
-                            ),
-                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                        paid_at TEXT,
-                        confirmed_at TEXT,
-                        paid_by_conductor_id INTEGER,
-                        FOREIGN KEY (matatu_id)
-                            REFERENCES matatus(id),
-                        FOREIGN KEY (passenger_destination_id)
-                            REFERENCES passenger_destinations(id),
-                        FOREIGN KEY (paid_by_conductor_id)
-                            REFERENCES conductors(id)
-                    )
-                """)
+            CREATE TABLE IF NOT EXISTS passenger_balances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                matatu_id INTEGER NOT NULL,
+                passenger_destination_id INTEGER NOT NULL,
+                amount REAL NOT NULL CHECK (amount > 0),
+                status TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (
+                        status IN (
+                            'pending',
+                            'awaiting_confirmation',
+                            'confirmed'
+                        )
+                    ),
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                paid_at TEXT,
+                confirmed_at TEXT,
+                paid_by_conductor_id INTEGER,
+                FOREIGN KEY (matatu_id)
+                    REFERENCES matatus(id),
+                FOREIGN KEY (passenger_destination_id)
+                    REFERENCES passenger_destinations(id),
+                FOREIGN KEY (paid_by_conductor_id)
+                    REFERENCES conductors(id)
+            )
+        """)
+
         # Speed up queries for active balances belonging to a matatu.
         connection.execute("""
             CREATE INDEX IF NOT EXISTS

@@ -1,6 +1,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import {
   getDestinationChangeRequests,
   decideDestinationChangeRequest,
@@ -12,6 +20,7 @@ export default function ConductorRequests() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [processingId, setProcessingId] = useState(null)
+  const [showRequests, setShowRequests] = useState(false)
 
   const loadRequests = useCallback(async (showLoading = false) => {
     try {
@@ -104,106 +113,134 @@ export default function ConductorRequests() {
         </div>
       )}
 
-      <section>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Pending requests
-          </h2>
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setShowRequests((current) => !current)}
+          aria-expanded={showRequests}
+          aria-controls="destination-change-request-list"
+          className="flex w-full items-center justify-between gap-3 p-5 text-left transition hover:bg-slate-50"
+        >
+          <span>
+            <span className="block text-lg font-semibold text-slate-900">
+              Pending requests
+            </span>
+            <span className="mt-1 block text-sm text-slate-500">
+              Review passenger destination-change requests.
+            </span>
+          </span>
 
-          
-        </div>
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
+              {loading ? 'Loading...' : `${requests.length} pending`}
+            </span>
 
-        {loading ? (
-          <p className="rounded-xl border border-slate-200 bg-white p-5 text-slate-600">
-            Loading requests...
-          </p>
-        ) : requests.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <Clock size={30} className="mx-auto mb-3 text-slate-400" />
-            <h3 className="font-semibold text-slate-800">
-              No pending requests
-            </h3>
-            <p className="mt-1 text-sm text-slate-600">
-              New destination-change requests will appear here automatically.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {requests.map((item) => {
-              const isProcessing = processingId === item.request_id
+            {showRequests ? (
+              <ChevronUp size={20} className="text-slate-500" />
+            ) : (
+              <ChevronDown size={20} className="text-slate-500" />
+            )}
+          </span>
+        </button>
 
-              return (
-                <article
-                  key={item.request_id}
-                  className="rounded-xl border border-slate-200 bg-white p-5"
-                >
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm text-slate-500">Passenger</p>
-                      <h3 className="text-lg font-bold text-slate-900">
-                        {item.passenger_id}
-                      </h3>
-                    </div>
+        {showRequests && (
+          <div
+            id="destination-change-request-list"
+            className="border-t border-slate-100 p-5"
+          >
+            {loading ? (
+              <p className="rounded-xl border border-slate-200 bg-white p-5 text-slate-600">
+                Loading requests...
+              </p>
+            ) : requests.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                <Clock size={30} className="mx-auto mb-3 text-slate-400" />
+                <h3 className="font-semibold text-slate-800">
+                  No pending requests
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  New destination-change requests will appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {requests.map((item) => {
+                  const isProcessing = processingId === item.request_id
 
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
-                      Pending
-                    </span>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-sm text-slate-500">
-                        Current destination
-                      </p>
-                      <p className="mt-1 font-medium text-slate-800">
-                        {item.current_destination || 'Unknown destination'}
-                      </p>
-                    </div>
-
-                    <div className="rounded-lg bg-emerald-50 p-3">
-                      <p className="text-sm text-emerald-700">
-                        Requested destination
-                      </p>
-                      <p className="mt-1 font-medium text-emerald-900">
-                        {item.requested_destination || 'Unknown destination'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {item.created_at && (
-                    <p className="mt-3 text-xs text-slate-500">
-                      Submitted: {item.created_at}
-                    </p>
-                  )}
-
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDecision(item.request_id, 'approve')
-                      }
-                      disabled={processingId !== null}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  return (
+                    <article
+                      key={item.request_id}
+                      className="rounded-xl border border-slate-200 bg-white p-5"
                     >
-                      <CheckCircle2 size={17} />
-                      {isProcessing ? 'Processing...' : 'Approve'}
-                    </button>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm text-slate-500">Passenger</p>
+                          <h3 className="text-lg font-bold text-slate-900">
+                            {item.passenger_id}
+                          </h3>
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDecision(item.request_id, 'reject')
-                      }
-                      disabled={processingId !== null}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <XCircle size={17} />
-                      Reject
-                    </button>
-                  </div>
-                </article>
-              )
-            })}
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
+                          Pending
+                        </span>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-lg bg-slate-50 p-3">
+                          <p className="text-sm text-slate-500">
+                            Current destination
+                          </p>
+                          <p className="mt-1 font-medium text-slate-800">
+                            {item.current_destination || 'Unknown destination'}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-emerald-50 p-3">
+                          <p className="text-sm text-emerald-700">
+                            Requested destination
+                          </p>
+                          <p className="mt-1 font-medium text-emerald-900">
+                            {item.requested_destination || 'Unknown destination'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {item.created_at && (
+                        <p className="mt-3 text-xs text-slate-500">
+                          Submitted: {item.created_at}
+                        </p>
+                      )}
+
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDecision(item.request_id, 'approve')
+                          }
+                          disabled={processingId !== null}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <CheckCircle2 size={17} />
+                          {isProcessing ? 'Processing...' : 'Approve'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDecision(item.request_id, 'reject')
+                          }
+                          disabled={processingId !== null}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <XCircle size={17} />
+                          Reject
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </section>

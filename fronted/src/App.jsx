@@ -3,15 +3,14 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Landing from './components/Landing'
 import AdminLayout from './components/admin/AdminLayout'
-import Dashboard from './pages/admin/Dashboard'
 import ResourcePage from './pages/admin/ResourcePage'
-import AdminDashboard from './components/AdminDashboard'
-
+import ConductorManagement from './pages/admin/ConductorManagement'
 import ConductorEmergencyAlerts from './pages/conductor/ConductorEmergencyAlerts'
 import ConductorLayout from './components/conductor/ConductorLayout'
 import ConductorDashboard from './pages/conductor/ConductorDashboard'
 import ConductorBalances from './pages/conductor/ConductorBalances'
 import ConductorRequests from './pages/conductor/ConductorRequests'
+import ConductorQRCode from './pages/conductor/ConductorQRCode'
 
 import Passenger from './pages/Passenger'
 
@@ -24,7 +23,7 @@ function RoleHome() {
   const { currentUser } = useAuth()
 
   if (currentUser?.role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />
+    return <Navigate to="/admin/create-user" replace />
   }
 
   if (currentUser?.role === 'conductor') {
@@ -55,25 +54,12 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route index element={<Navigate to="create-user" replace />} />
         <Route path="matatus" element={<ResourcePage />} />
         <Route path="routes" element={<ResourcePage />} />
-        <Route path="users" element={<ResourcePage />} />
+        <Route path="users" element={<ConductorManagement />} />
         <Route path="create-user" element={<CreateUser />} />
-        <Route path="trips" element={<ResourcePage />} />
-        <Route path="requests" element={<ResourcePage />} />
       </Route>
-
-      {/* Existing admin prototype */}
-      <Route
-        path="/admin-prototype"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
 
       {/* Conductor workspace */}
       <Route
@@ -84,20 +70,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        {/* Default section: passenger destinations */}
         <Route index element={<ConductorDashboard />} />
-
-        {/* Balance records */}
         <Route path="balances" element={<ConductorBalances />} />
-
-        {/* Destination-change requests */}
         <Route path="requests" element={<ConductorRequests />} />
-
-        {/* Emergency alerts */}
         <Route
           path="emergency-alerts"
           element={<ConductorEmergencyAlerts />}
         />
+        <Route path="qr-code" element={<ConductorQRCode />} />
       </Route>
 
       {/* Fallback */}

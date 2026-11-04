@@ -24,12 +24,12 @@ export default function ProtectedRoute({ allowedRoles, children }) {
 
   // Prevent users from accessing pages outside their role.
   if (!allowedRoles.includes(currentUser.role)) {
-    const home =
-      currentUser.role === 'admin'
-        ? '/admin/dashboard'
-        : currentUser.role === 'conductor'
-          ? '/conductor'
-          : '/'
+   const home =
+  currentUser.role === 'admin'
+    ? '/admin/create-user'
+    : currentUser.role === 'conductor'
+      ? '/conductor'
+      : '/'
 
     return <Navigate to={home} replace />
   }

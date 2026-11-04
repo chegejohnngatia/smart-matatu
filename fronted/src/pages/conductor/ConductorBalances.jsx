@@ -33,6 +33,9 @@ export default function ConductorBalances() {
   const [payingId, setPayingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  const [showPendingBalances, setShowPendingBalances] = useState(false);
+  const [showAwaitingConfirmation, setShowAwaitingConfirmation] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   const loadBalances = useCallback(async () => {
@@ -48,8 +51,8 @@ export default function ConductorBalances() {
       }
 
       setPendingBalances(data.pending_balances || []);
-setAwaitingConfirmation(data.awaiting_confirmation || []);
-setHistory(data.history || []);
+      setAwaitingConfirmation(data.awaiting_confirmation || []);
+      setHistory(data.history || []);
       setError("");
     } catch (err) {
       setError(err.message || "Could not connect to the server.");
@@ -234,8 +237,6 @@ setHistory(data.history || []);
         </div>
       </div>
 
-      
-
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -296,30 +297,29 @@ setHistory(data.history || []);
           </div>
         </div>
 
-        
-    <form
-      onSubmit={handleAddBalance}
-      className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
-    >
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:col-span-2 lg:col-span-3"
+        <form
+          onSubmit={handleAddBalance}
+          className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
         >
-          <AlertCircle size={19} className="mt-0.5 shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:col-span-2 lg:col-span-3"
+            >
+              <AlertCircle size={19} className="mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
 
-      {message && (
-        <div
-          role="status"
-          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 sm:col-span-2 lg:col-span-3"
-        >
-          <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
-          <p>{message}</p>
-        </div>
-      )}
+          {message && (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 sm:col-span-2 lg:col-span-3"
+            >
+              <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
+              <p>{message}</p>
+            </div>
+          )}
 
           <div>
             <label
@@ -391,187 +391,225 @@ setHistory(data.history || []);
 
       {/* Pending balances */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+        <button
+          type="button"
+          onClick={() =>
+            setShowPendingBalances((current) => !current)
+          }
+          aria-expanded={showPendingBalances}
+          className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-slate-50 sm:px-6"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <Clock3 size={21} />
-            </div>
+            </span>
 
-            <div>
-              <h3 className="font-bold text-slate-900">
+            <span>
+              <span className="block font-bold text-slate-900">
                 Pending balances
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              </span>
+              <span className="mt-1 block text-sm text-slate-500">
                 Amounts that still need to be returned.
-              </p>
-            </div>
-          </div>
-
-          <span className="inline-flex w-fit items-center rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-200">
-            {pendingBalances.length} pending
+              </span>
+            </span>
           </span>
-        </div>
 
-        {pendingBalances.length === 0 ? (
-          <div className="flex flex-col items-center px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={28} />
-            </div>
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-200">
+              {pendingBalances.length} pending
+            </span>
 
-            <h4 className="mt-4 font-semibold text-slate-900">
-              No pending balances
-            </h4>
+            {showPendingBalances ? (
+              <ChevronUp size={18} className="text-slate-400" />
+            ) : (
+              <ChevronDown size={18} className="text-slate-400" />
+            )}
+          </span>
+        </button>
 
-            <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-              There are currently no outstanding repayments recorded for
-              this vehicle.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {pendingBalances.map((balance) => (
-              <article
-                key={balance.balance_id}
-                className="flex flex-col gap-4 p-5 transition hover:bg-slate-50/70 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-              >
-                <div className="flex min-w-0 items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                    <UserRound size={21} />
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold text-slate-900">
-                        {balance.passenger_id}
-                      </h4>
-
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                        Pending
-                      </span>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <CalendarClock size={14} />
-                        Recorded {formatDate(balance.created_at)}
-                      </span>
-
-                      {balance.journey_id != null && (
-                        <span>Journey #{balance.journey_id}</span>
-                      )}
-                    </div>
-                  </div>
+        {showPendingBalances && (
+          <div className="border-t border-slate-100">
+            {pendingBalances.length === 0 ? (
+              <div className="flex flex-col items-center px-5 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 size={28} />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 sm:border-0 sm:pt-0">
-                  <div className="sm:text-right">
-                    <p className="text-xs font-medium text-slate-500">
-                      Amount owed
-                    </p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                      {formatAmount(balance.amount)}
-                    </p>
-                  </div>
+                <h4 className="mt-4 font-semibold text-slate-900">
+                  No pending balances
+                </h4>
 
-                  <button
-                    type="button"
-                    disabled={payingId === balance.balance_id}
-                    onClick={() => handleMarkPaid(balance)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
+                  There are currently no outstanding repayments recorded for
+                  this vehicle.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {pendingBalances.map((balance) => (
+                  <article
+                    key={balance.balance_id}
+                    className="flex flex-col gap-4 p-5 transition hover:bg-slate-50/70 sm:flex-row sm:items-center sm:justify-between sm:px-6"
                   >
-                    {payingId === balance.balance_id ? (
-                      <LoaderCircle size={16} className="animate-spin" />
-                    ) : (
-                      <Check size={16} />
-                    )}
-                    {payingId === balance.balance_id
-                      ? "Updating..."
-                      : "Mark as paid"}
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                        <UserRound size={21} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-bold text-slate-900">
+                            {balance.passenger_id}
+                          </h4>
+
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                            Pending
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarClock size={14} />
+                            Recorded {formatDate(balance.created_at)}
+                          </span>
+
+                          {balance.journey_id != null && (
+                            <span>Journey #{balance.journey_id}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 sm:border-0 sm:pt-0">
+                      <div className="sm:text-right">
+                        <p className="text-xs font-medium text-slate-500">
+                          Amount owed
+                        </p>
+                        <p className="mt-1 text-xl font-bold text-slate-900">
+                          {formatAmount(balance.amount)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={payingId === balance.balance_id}
+                        onClick={() => handleMarkPaid(balance)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {payingId === balance.balance_id ? (
+                          <LoaderCircle size={16} className="animate-spin" />
+                        ) : (
+                          <Check size={16} />
+                        )}
+                        {payingId === balance.balance_id
+                          ? "Updating..."
+                          : "Mark as paid"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </section>
 
-      
       {/* Awaiting Passenger Confirmation */}
       <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b border-amber-100 bg-amber-50 p-5 sm:px-6">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-            <CalendarClock size={21} />
+        <button
+          type="button"
+          onClick={() =>
+            setShowAwaitingConfirmation((current) => !current)
+          }
+          aria-expanded={showAwaitingConfirmation}
+          className="flex w-full items-center justify-between gap-4 border-b border-amber-100 bg-amber-50 p-5 text-left transition hover:bg-amber-100/70 sm:px-6"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <CalendarClock size={21} />
+            </span>
+
+            <span>
+              <span className="block font-bold text-slate-900">
+                Awaiting Passenger Confirmation
+              </span>
+              <span className="mt-1 block text-sm text-slate-600">
+                Repayments recorded by the conductor that passengers have not yet confirmed.
+              </span>
+            </span>
           </span>
 
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
+              {awaitingConfirmation.length}
+            </span>
+
+            {showAwaitingConfirmation ? (
+              <ChevronUp size={18} className="text-amber-700" />
+            ) : (
+              <ChevronDown size={18} className="text-amber-700" />
+            )}
+          </span>
+        </button>
+
+        {showAwaitingConfirmation && (
           <div>
-            <h2 className="font-bold text-slate-900">
-              Awaiting Passenger Confirmation
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Repayments recorded by the conductor that passengers have not yet confirmed.
-            </p>
-          </div>
+            {awaitingConfirmation.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="font-medium text-slate-700">
+                  No repayments awaiting confirmation
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Repayments recorded by the conductor will appear here until the passenger confirms receipt.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {awaitingConfirmation.map((balance) => (
+                  <article
+                    key={balance.balance_id}
+                    className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-bold text-slate-900">
+                          Passenger {balance.passenger_id}
+                        </h3>
 
-          <span className="ml-auto rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">
-            {awaitingConfirmation.length}
-          </span>
-        </div>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                          Awaiting confirmation
+                        </span>
+                      </div>
 
-        {awaitingConfirmation.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="font-medium text-slate-700">
-              No repayments awaiting confirmation
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              Repayments recorded by the conductor will appear here until the passenger confirms receipt.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {awaitingConfirmation.map((balance) => (
-              <article
-                key={balance.balance_id}
-                className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-slate-900">
-                      Passenger {balance.passenger_id}
-                    </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarClock size={14} />
+                          Repayment recorded {formatDate(balance.paid_at)}
+                        </span>
 
-                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                      Awaiting confirmation
-                    </span>
-                  </div>
+                        {balance.journey_id != null && (
+                          <span>Journey #{balance.journey_id}</span>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1.5">
-                      <CalendarClock size={14} />
-                      Repayment recorded {formatDate(balance.paid_at)}
-                    </span>
-
-                    {balance.journey_id != null && (
-                      <span>Journey #{balance.journey_id}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="sm:text-right">
-                  <p className="text-xs font-medium text-slate-500">
-                    Amount recorded
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-slate-900">
-                    {formatAmount(balance.amount)}
-                  </p>
-                </div>
-              </article>
-            ))}
+                    <div className="sm:text-right">
+                      <p className="text-xs font-medium text-slate-500">
+                        Amount recorded
+                      </p>
+                      <p className="mt-1 text-xl font-bold text-slate-900">
+                        {formatAmount(balance.amount)}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </section>
 
       {/* Paid history */}
-
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <button
           type="button"

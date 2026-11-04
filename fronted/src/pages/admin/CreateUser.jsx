@@ -1,38 +1,128 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+
+import { useEffect, useRef, useState } from 'react'
+
 import { useAuth } from '../../context/AuthContext'
 import '../auth/auth.css'
 
 export default function CreateUser() {
-  const { createUser } = useAuth()
+  const { csrfToken } = useAuth()
+  const formRef = useRef(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState('conductor')
   const [password, setPassword] = useState('')
+  const [matatuId, setMatatuId] = useState('')
+  const [passportPhoto, setPassportPhoto] = useState(null)
+
+  const [matatus, setMatatus] = useState([])
+  const [loadingMatatus, setLoadingMatatus] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState(false)
 
-  function handleSubmit(event) {
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMatatus() {
+      try {
+        const response = await fetch('/api/admin/matatus', {
+          method: 'GET',
+          credentials: 'include',
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to load matatus.')
+        }
+
+        if (!cancelled) {
+          setMatatus(data.matatus || [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMessage(error.message || 'Unable to load matatus.')
+          setSuccess(false)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMatatus(false)
+        }
+      }
+    }
+
+    loadMatatus()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleSubmit(event) {
     event.preventDefault()
     setMessage('')
     setSuccess(false)
 
-    if (password.length < 8) {
-      setMessage('Use a password of at least 8 characters.')
+    if (!csrfToken) {
+      setMessage('Your session has expired. Please log in again.')
       return
     }
 
-    const result = createUser({ name, email, password, role })
+    if (password.length < 8 || password.length > 128) {
+      setMessage('Password must be between 8 and 128 characters.')
+      return
+    }
 
-    setMessage(result.message)
-    setSuccess(result.success)
+    if (!matatuId) {
+      setMessage('Please select a matatu.')
+      return
+    }
 
-    if (result.success) {
+    if (!passportPhoto) {
+      setMessage('Please select a passport photograph.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('full_name', name.trim())
+    formData.append('email', email.trim())
+    formData.append('password', password)
+    formData.append('matatu_id', matatuId)
+    formData.append('passport_photo', passportPhoto)
+
+    setSubmitting(true)
+
+    try {
+      const response = await fetch('/api/admin/conductors', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfToken,
+        },
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to create conductor account.')
+      }
+
+      setMessage(data.message || 'Conductor account created successfully.')
+      setSuccess(true)
+
       setName('')
       setEmail('')
       setPassword('')
-      setRole('conductor')
+      setMatatuId('')
+      setPassportPhoto(null)
+      formRef.current?.reset()
+    } catch (error) {
+      setMessage(error.message || 'Unable to connect to the server.')
+      setSuccess(false)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -41,9 +131,9 @@ export default function CreateUser() {
       <section className="auth-form-panel auth-create-panel">
         <div className="auth-form-card">
           <span className="auth-eyebrow">ADMINISTRATION</span>
-          <h2>Create a user account</h2>
+          <h2>Create a conductor account</h2>
           <p className="auth-muted">
-            Create accounts for authorized conductors.
+            Register an authorized conductor and assign a matatu.
           </p>
 
           {message && (
@@ -55,7 +145,11 @@ export default function CreateUser() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            className="auth-form"
+          >
             <label htmlFor="fullName">Full name</label>
             <input
               id="fullName"
@@ -63,6 +157,8 @@ export default function CreateUser() {
               onChange={(event) => setName(event.target.value)}
               placeholder="Enter full name"
               autoComplete="name"
+              minLength={3}
+              maxLength={100}
               required
             />
 
@@ -77,14 +173,27 @@ export default function CreateUser() {
               required
             />
 
-            <label htmlFor="newRole">Account role</label>
+            <label htmlFor="matatu">Assign matatu</label>
             <select
-              id="newRole"
-              value={role}
-              onChange={(event) => setRole(event.target.value)}
-              disabled
+              id="matatu"
+              value={matatuId}
+              onChange={(event) => setMatatuId(event.target.value)}
+              disabled={loadingMatatus || matatus.length === 0}
+              required
             >
-              <option value="conductor">Conductor</option>
+              <option value="">
+                {loadingMatatus
+                  ? 'Loading matatus...'
+                  : matatus.length === 0
+                    ? 'No matatus available'
+                    : 'Select a matatu'}
+              </option>
+
+              {matatus.map((matatu) => (
+                <option key={matatu.id} value={matatu.id}>
+                  {matatu.registration_number} — {matatu.route_name}
+                </option>
+              ))}
             </select>
 
             <label htmlFor="newPassword">Temporary password</label>
@@ -95,23 +204,30 @@ export default function CreateUser() {
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
               minLength={8}
+              maxLength={128}
               placeholder="At least 8 characters"
               required
             />
 
-            <button type="submit" className="auth-submit">
-              Create account
+            <label htmlFor="passportPhoto">Passport photograph</label>
+            <input
+              id="passportPhoto"
+              type="file"
+              accept="image/jpeg,image/png"
+              onChange={(event) =>
+                setPassportPhoto(event.target.files?.[0] || null)
+              }
+              required
+            />
+
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={submitting || loadingMatatus || matatus.length === 0}
+            >
+              {submitting ? 'Creating account...' : 'Create account'}
             </button>
           </form>
-
-          <Link to="/admin/dashboard" className="auth-back-link">
-            ← Return to administrator dashboard
-          </Link>
-
-          <p className="auth-demo-note">
-            Temporary demo only. Accounts are stored in this browser's
-            session storage and are not saved to the project database.
-          </p>
         </div>
       </section>
     </main>

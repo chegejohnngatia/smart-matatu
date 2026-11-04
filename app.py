@@ -265,6 +265,26 @@ def conductor_required(f):
         connection = get_db_connection()
 
         try:
+            # Verify that the conductor account still exists and is active.
+            conductor = connection.execute(
+                """
+                SELECT is_active
+                FROM conductors
+                WHERE id = ?
+                """,
+                (session["user_id"],)
+            ).fetchone()
+
+            # Reject archived, suspended, or deleted conductor accounts.
+            if conductor is None or conductor["is_active"] != 1:
+                session.clear()
+
+                return jsonify({
+                    "success": False,
+                    "message": "Your conductor account is inactive. Please contact the administrator."
+                }), 401
+
+            # Retrieve the conductor's current active matatu assignment.
             assignment = connection.execute(
                 """
                 SELECT matatu_id
@@ -305,7 +325,6 @@ def conductor_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
-
     # =====================================================
 # AUTHORIZATION: PASSENGER ACCESS
 # =====================================================
@@ -350,6 +369,7 @@ def get_authenticated_passenger(connection):
 
 @app.route("/api/auth/me", methods=["GET"])
 def api_current_user():
+    # Confirm that a user is logged in.
     if "user_id" not in session:
         return jsonify({
             "success": False,
@@ -367,6 +387,26 @@ def api_current_user():
         connection = get_db_connection()
 
         try:
+            # Verify that the conductor account still exists and is active.
+            conductor = connection.execute(
+                """
+                SELECT is_active
+                FROM conductors
+                WHERE id = ?
+                """,
+                (session["user_id"],)
+            ).fetchone()
+
+            # Reject archived or deleted conductor accounts.
+            if conductor is None or conductor["is_active"] != 1:
+                session.clear()
+
+                return jsonify({
+                    "success": False,
+                    "message": "Your conductor account is inactive. Please contact the administrator."
+                }), 401
+
+            # Retrieve the conductor's current active matatu assignment.
             assigned_matatu = connection.execute(
                 """
                 SELECT
@@ -381,6 +421,7 @@ def api_current_user():
                 (session["user_id"],)
             ).fetchone()
 
+            # A conductor without an active assignment cannot operate.
             if assigned_matatu is None:
                 session.clear()
 
@@ -403,7 +444,6 @@ def api_current_user():
         "user": user,
         "csrf_token": session.get("csrf_token")
     }), 200
-
 # =====================================================
 # AUTH: LOGOUT
 # =====================================================
@@ -417,6 +457,156 @@ def api_logout():
         "success": True,
         "message": "Logout successful."
     }), 200
+
+@app.route("/api/admin/matatus", methods=["GET"])
+@admin_required
+def get_admin_matatus():
+    connection = get_db_connection()
+
+    try:
+        matatus = connection.execute("""
+            SELECT id, registration_number, route_name
+            FROM matatus
+            ORDER BY registration_number ASC
+        """).fetchall()
+
+        return jsonify({
+            "success": True,
+            "matatus": [
+                {
+                    "id": matatu["id"],
+                    "registration_number": matatu["registration_number"],
+                    "route_name": matatu["route_name"]
+                }
+                for matatu in matatus
+            ]
+        }), 200
+
+    except sqlite3.Error:
+        app.logger.exception("Failed to retrieve matatus.")
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve matatus."
+        }), 500
+
+    finally:
+        connection.close()
+
+@app.route("/api/admin/matatus/available", methods=["GET"])
+@admin_required
+def get_available_matatus():
+    connection = get_db_connection()
+
+    try:
+        matatus = connection.execute(
+            """
+            SELECT
+                    m.id,
+                    m.registration_number,
+                    m.route_name
+            FROM matatus m
+            ORDER BY m.registration_number ASC
+            """
+        ).fetchall()
+
+        return jsonify({
+            "success": True,
+            "matatus": [
+                {
+                    "id": matatu["id"],
+                    "registration_number": matatu["registration_number"],
+                    "route_name": matatu["route_name"]
+                }
+                for matatu in matatus
+            ]
+        }), 200
+
+    except sqlite3.Error:
+        app.logger.exception(
+            "Failed to retrieve available matatus."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve available matatus."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route("/api/admin/conductors", methods=["GET"])
+@admin_required
+def get_admin_conductors():
+    connection = get_db_connection()
+
+    try:
+        conductors = connection.execute(
+            """
+            SELECT
+                c.id,
+                c.full_name,
+                c.email,
+                c.is_active,
+                c.deleted_at,
+                c.created_at,
+                m.id AS matatu_id,
+                m.registration_number,
+                m.route_name
+            FROM conductors c
+            LEFT JOIN matatu_assignments ma
+                ON c.id = ma.conductor_id
+                AND ma.ended_at IS NULL
+            LEFT JOIN matatus m
+                ON ma.matatu_id = m.id
+            ORDER BY c.created_at DESC
+            """
+        ).fetchall()
+
+        return jsonify({
+            "success": True,
+            "conductors": [
+                {
+                    "id": conductor["id"],
+                    "full_name": conductor["full_name"],
+                    "email": conductor["email"],
+                    "status": (
+                        "Deleted"
+                        if conductor["deleted_at"] is not None
+                        else (
+                            "Active"
+                            if conductor["is_active"] == 1
+                            else "Archived"
+                        )
+                    ),
+                    "created_at": conductor["created_at"],
+                    "matatu": (
+                        {
+                            "id": conductor["matatu_id"],
+                            "registration_number": conductor["registration_number"],
+                            "route_name": conductor["route_name"]
+                        }
+                        if conductor["matatu_id"] is not None
+                        else None
+                    )
+                }
+                for conductor in conductors
+            ]
+        }), 200
+
+    except sqlite3.Error:
+        app.logger.exception("Failed to retrieve conductors.")
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve conductors."
+        }), 500
+
+    finally:
+        connection.close()
+
+
 
 @app.route("/api/admin/conductors", methods=["POST"])
 @admin_required
@@ -644,6 +834,685 @@ def create_conductor():
             os.remove(photo_path)
 
         raise
+
+    finally:
+        connection.close()
+
+
+
+
+@app.route("/api/admin/conductors/<int:conductor_id>", methods=["PUT"])
+@admin_required
+@csrf_required
+def update_conductor(conductor_id):
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    passport_photo = request.files.get("passport_photo")
+
+    # Validate profile details.
+    if not full_name or not email:
+        return jsonify({
+            "success": False,
+            "message": "Full name and email are required."
+        }), 400
+
+    if len(full_name) < 3 or len(full_name) > 100:
+        return jsonify({
+            "success": False,
+            "message": "Full name must be between 3 and 100 characters."
+        }), 400
+
+    if not re.fullmatch(
+        r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+",
+        email
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Enter a valid email address."
+        }), 400
+
+    # Process a replacement photograph only when supplied.
+    processed_image = None
+
+    if passport_photo and passport_photo.filename:
+        try:
+            passport_photo.stream.seek(0)
+
+            with warnings.catch_warnings():
+                warnings.simplefilter(
+                    "error",
+                    Image.DecompressionBombWarning
+                )
+
+                with Image.open(passport_photo.stream) as uploaded_image:
+                    if uploaded_image.format not in ("JPEG", "PNG"):
+                        return jsonify({
+                            "success": False,
+                            "message": "Only JPEG and PNG images are accepted."
+                        }), 400
+
+                    if (
+                        uploaded_image.width < 200
+                        or uploaded_image.height < 200
+                    ):
+                        return jsonify({
+                            "success": False,
+                            "message": "The passport photo must be at least 200 x 200 pixels."
+                        }), 400
+
+                    if (
+                        uploaded_image.width > 6000
+                        or uploaded_image.height > 6000
+                    ):
+                        return jsonify({
+                            "success": False,
+                            "message": "The passport photo dimensions are too large."
+                        }), 400
+
+                    uploaded_image.verify()
+
+            passport_photo.stream.seek(0)
+
+            with warnings.catch_warnings():
+                warnings.simplefilter(
+                    "error",
+                    Image.DecompressionBombWarning
+                )
+
+                with Image.open(passport_photo.stream) as uploaded_image:
+                    processed_image = uploaded_image.convert("RGB")
+                    processed_image.thumbnail((1200, 1200))
+
+        except (
+            UnidentifiedImageError,
+            Image.DecompressionBombWarning,
+            Image.DecompressionBombError,
+            OSError,
+            ValueError
+        ):
+            return jsonify({
+                "success": False,
+                "message": "The uploaded passport photo is invalid or too large."
+            }), 400
+
+    # Prepare a replacement photograph if one was supplied.
+    new_photo_path = None
+    relative_photo_path = None
+
+    if processed_image is not None:
+        photo_filename = f"{uuid.uuid4().hex}.jpg"
+
+        new_photo_path = os.path.join(
+            CONDUCTOR_UPLOAD_FOLDER,
+            photo_filename
+        )
+
+        relative_photo_path = os.path.join(
+            "conductor_uploads",
+            photo_filename
+        ).replace("\\", "/")
+
+    # Safely remove a staged replacement photograph if the update fails.
+    def cleanup_new_photo():
+        if new_photo_path and os.path.isfile(new_photo_path):
+            try:
+                os.remove(new_photo_path)
+            except OSError:
+                app.logger.warning(
+                    "Could not remove staged conductor photograph."
+                )
+
+    connection = get_db_connection()
+
+    try:
+        # Save the replacement photograph before updating the record.
+        if processed_image is not None:
+            processed_image.save(
+                new_photo_path,
+                format="JPEG",
+                quality=90,
+                optimize=True
+            )
+
+        connection.execute("BEGIN IMMEDIATE")
+
+        conductor = connection.execute(
+            """
+            SELECT
+                id,
+                passport_photo,
+                is_active,
+                deleted_at
+            FROM conductors
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        ).fetchone()
+
+        if conductor is None:
+            connection.rollback()
+            cleanup_new_photo()
+
+            return jsonify({
+                "success": False,
+                "message": "Conductor account not found."
+            }), 404
+
+        # Permanently deleted accounts cannot be edited.
+        if conductor["deleted_at"] is not None:
+            connection.rollback()
+            cleanup_new_photo()
+
+            return jsonify({
+                "success": False,
+                "message": "Permanently deleted conductor accounts cannot be edited."
+            }), 409
+
+        # Archived accounts must be restored before editing.
+        if conductor["is_active"] != 1:
+            connection.rollback()
+            cleanup_new_photo()
+
+            return jsonify({
+                "success": False,
+                "message": "Archived conductor accounts cannot be edited. Restore the account first."
+            }), 409
+
+        old_photo = conductor["passport_photo"]
+
+        if relative_photo_path is not None:
+            connection.execute(
+                """
+                UPDATE conductors
+                SET full_name = ?,
+                    email = ?,
+                    passport_photo = ?
+                WHERE id = ?
+                """,
+                (
+                    full_name,
+                    email,
+                    relative_photo_path,
+                    conductor_id
+                )
+            )
+        else:
+            connection.execute(
+                """
+                UPDATE conductors
+                SET full_name = ?,
+                    email = ?
+                WHERE id = ?
+                """,
+                (
+                    full_name,
+                    email,
+                    conductor_id
+                )
+            )
+
+        connection.commit()
+
+        # Delete the previous photograph only after the update succeeds.
+        if relative_photo_path is not None and old_photo:
+            old_photo_normalized = old_photo.replace("\\", "/")
+            old_filename = os.path.basename(old_photo_normalized)
+
+            expected_old_path = f"conductor_uploads/{old_filename}"
+
+            if (
+                old_photo_normalized == expected_old_path
+                and re.fullmatch(r"[0-9a-f]{32}\.jpg", old_filename)
+            ):
+                upload_root = os.path.realpath(CONDUCTOR_UPLOAD_FOLDER)
+
+                previous_photo_path = os.path.realpath(
+                    os.path.join(upload_root, old_filename)
+                )
+
+                if (
+                    os.path.dirname(previous_photo_path) == upload_root
+                    and os.path.isfile(previous_photo_path)
+                ):
+                    try:
+                        os.remove(previous_photo_path)
+                    except OSError:
+                        app.logger.warning(
+                            "Could not remove previous conductor photograph."
+                        )
+
+        return jsonify({
+            "success": True,
+            "message": "Conductor account updated successfully.",
+            "conductor": {
+                "id": conductor_id,
+                "full_name": full_name,
+                "email": email
+            }
+        }), 200
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+        cleanup_new_photo()
+
+        return jsonify({
+            "success": False,
+            "message": "That email address is already registered."
+        }), 409
+
+    except Exception:
+        connection.rollback()
+        cleanup_new_photo()
+
+        app.logger.exception(
+            "Failed to update conductor account."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to update conductor account."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/conductors/<int:conductor_id>/archive",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def archive_conductor(conductor_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        conductor = connection.execute(
+            """
+            SELECT id, is_active
+            FROM conductors
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        ).fetchone()
+
+        if conductor is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Conductor account not found."
+            }), 404
+
+        if conductor["is_active"] == 0:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "This conductor account is already archived."
+            }), 409
+
+        # End the conductor's active matatu assignment.
+        connection.execute(
+            """
+            UPDATE matatu_assignments
+            SET ended_at = CURRENT_TIMESTAMP
+            WHERE conductor_id = ?
+              AND ended_at IS NULL
+            """,
+            (conductor_id,)
+        )
+
+        # Deactivate the conductor account.
+        connection.execute(
+            """
+            UPDATE conductors
+            SET is_active = 0
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        )
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Conductor account archived successfully.",
+            "conductor_id": conductor_id
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+
+        app.logger.exception(
+            "Failed to archive conductor account %s.",
+            conductor_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to archive conductor account."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/conductors/<int:conductor_id>",
+    methods=["DELETE"]
+)
+@admin_required
+@csrf_required
+def delete_conductor(conductor_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        conductor = connection.execute(
+            """
+            SELECT
+                id,
+                full_name,
+                is_active,
+                deleted_at,
+                passport_photo
+            FROM conductors
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        ).fetchone()
+
+        if conductor is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Conductor account not found."
+            }), 404
+
+        # Prevent deleting an account more than once.
+        if conductor["deleted_at"] is not None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "This conductor account has already been permanently deleted."
+            }), 409
+
+        # Only archived conductors can be permanently deleted.
+        if conductor["is_active"] != 0:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Only archived conductor accounts can be permanently deleted. Archive this account first."
+            }), 409
+
+        old_photo = conductor["passport_photo"]
+
+        # Generate an unusable replacement password hash.
+        replacement_password_hash = generate_password_hash(
+            secrets.token_urlsafe(48)
+        )
+
+        # End any lingering active assignment defensively.
+        connection.execute(
+            """
+            UPDATE matatu_assignments
+            SET ended_at = CURRENT_TIMESTAMP
+            WHERE conductor_id = ?
+              AND ended_at IS NULL
+            """,
+            (conductor_id,)
+        )
+
+        # Anonymise the conductor while retaining the historical record.
+        connection.execute(
+            """
+            UPDATE conductors
+            SET
+                full_name = ?,
+                email = ?,
+                password_hash = ?,
+                is_active = 0,
+                deleted_at = CURRENT_TIMESTAMP,
+                passport_photo = NULL
+            WHERE id = ?
+            """,
+            (
+                f"Deleted Conductor #{conductor_id}",
+                f"deleted-conductor-{conductor_id}@invalid.invalid",
+                replacement_password_hash,
+                conductor_id
+            )
+        )
+
+        connection.commit()
+
+        # Remove the old private photograph only after the database
+        # transaction has committed successfully.
+        if old_photo:
+            old_photo_normalized = old_photo.replace("\\", "/")
+            old_filename = os.path.basename(old_photo_normalized)
+
+            expected_old_path = f"conductor_uploads/{old_filename}"
+
+            if (
+                old_photo_normalized == expected_old_path
+                and re.fullmatch(r"[0-9a-f]{32}\.jpg", old_filename)
+            ):
+                upload_root = os.path.realpath(
+                    CONDUCTOR_UPLOAD_FOLDER
+                )
+
+                previous_photo_path = os.path.realpath(
+                    os.path.join(upload_root, old_filename)
+                )
+
+                if (
+                    os.path.dirname(previous_photo_path) == upload_root
+                    and os.path.isfile(previous_photo_path)
+                ):
+                    try:
+                        os.remove(previous_photo_path)
+                    except OSError:
+                        app.logger.warning(
+                            "Could not remove photograph for deleted conductor %s.",
+                            conductor_id
+                        )
+
+        return jsonify({
+            "success": True,
+            "message": (
+                "Conductor account permanently deleted. "
+                "Historical records have been preserved."
+            ),
+            "conductor_id": conductor_id,
+            "status": "Deleted"
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+
+        app.logger.exception(
+            "Failed to permanently delete conductor account %s.",
+            conductor_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to permanently delete conductor account."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/conductors/<int:conductor_id>/restore",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def restore_conductor(conductor_id):
+    data = request.get_json(silent=True) or {}
+    matatu_id = data.get("matatu_id")
+
+    if (
+        not isinstance(matatu_id, int)
+        or isinstance(matatu_id, bool)
+        or matatu_id <= 0
+    ):
+        return jsonify({
+            "success": False,
+            "message": "A valid matatu ID is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        conductor = connection.execute(
+            """
+            SELECT id, full_name, is_active, deleted_at
+            FROM conductors
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        ).fetchone()
+
+        if conductor is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Conductor account not found."
+            }), 404
+
+        # Permanently deleted accounts cannot be restored.
+        if conductor["deleted_at"] is not None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Permanently deleted conductor accounts cannot be restored."
+            }), 409
+
+        if conductor["is_active"] == 1:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "This conductor account is already active."
+            }), 409
+
+        # Check that the conductor has no existing active assignment.
+        existing_conductor_assignment = connection.execute(
+            """
+            SELECT id
+            FROM matatu_assignments
+            WHERE conductor_id = ?
+              AND ended_at IS NULL
+            """,
+            (conductor_id,)
+        ).fetchone()
+
+        if existing_conductor_assignment is not None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "This conductor already has an active matatu assignment."
+            }), 409
+
+        matatu = connection.execute(
+            """
+            SELECT id, registration_number, route_name
+            FROM matatus
+            WHERE id = ?
+            """,
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Selected matatu not found."
+            }), 404
+
+
+
+        # Reactivate the conductor.
+        connection.execute(
+            """
+            UPDATE conductors
+            SET is_active = 1
+            WHERE id = ?
+            """,
+            (conductor_id,)
+        )
+
+        # Create a new assignment; preserve all previous assignment history.
+        connection.execute(
+            """
+            INSERT INTO matatu_assignments (
+                conductor_id,
+                matatu_id
+            )
+            VALUES (?, ?)
+            """,
+            (conductor_id, matatu_id)
+        )
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Conductor account restored successfully.",
+            "conductor": {
+                "id": conductor["id"],
+                "full_name": conductor["full_name"],
+                "status": "Active"
+            },
+            "matatu": {
+                "id": matatu["id"],
+                "registration_number": matatu["registration_number"],
+                "route_name": matatu["route_name"]
+            }
+        }), 200
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        app.logger.exception(
+            "Assignment conflict while restoring conductor %s.",
+            conductor_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Could not restore conductor because of an assignment conflict."
+        }), 409
+
+    except sqlite3.Error:
+        connection.rollback()
+
+        app.logger.exception(
+            "Failed to restore conductor account %s.",
+            conductor_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to restore conductor account."
+        }), 500
 
     finally:
         connection.close()
@@ -1912,6 +2781,80 @@ def generate_qr(matatu_id):
         qr_matatu=matatu,
         qr_url=qr_url
     )
+
+
+@app.route("/api/conductor/qr-code", methods=["GET"])
+@conductor_required
+def get_conductor_qr_code():
+    """
+    Generate a passenger-entry QR code for the conductor's
+    currently assigned matatu.
+
+    The matatu ID is obtained from the verified session assignment,
+    never from a frontend parameter.
+    """
+    matatu_id = session.get("matatu_id")
+
+    connection = get_db_connection()
+
+    try:
+        matatu = connection.execute(
+            """
+            SELECT id, registration_number, route_name
+            FROM matatus
+            WHERE id = ?
+            """,
+            (matatu_id,)
+        ).fetchone()
+
+        if matatu is None:
+            return jsonify({
+                "success": False,
+                "error": "Assigned matatu not found."
+            }), 404
+
+        local_ip = get_local_ip()
+        qr_url = f"http://{local_ip}:5000/passenger/{matatu_id}"
+
+        qr = qrcode.make(qr_url)
+
+        image_buffer = io.BytesIO()
+        qr.save(image_buffer, format="PNG")
+        image_buffer.seek(0)
+
+        qr_image = base64.b64encode(
+            image_buffer.getvalue()
+        ).decode("utf-8")
+
+        response = jsonify({
+            "success": True,
+            "matatu": {
+                "id": matatu["id"],
+                "registration_number": matatu["registration_number"],
+                "route_name": matatu["route_name"]
+            },
+            "qr_url": qr_url,
+            "qr_image": f"data:image/png;base64,{qr_image}"
+        })
+
+        # Avoid caching an authenticated conductor response.
+        response.headers["Cache-Control"] = "no-store"
+
+        return response
+
+    except Exception:
+        app.logger.exception(
+            "Failed to generate conductor matatu QR code."
+        )
+
+        return jsonify({
+            "success": False,
+            "error": "Could not generate the matatu QR code."
+        }), 500
+
+    finally:
+        connection.close()
+
 
 @app.route("/matatus")
 def matatus():

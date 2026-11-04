@@ -1,36 +1,96 @@
 
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Bus,
-  LayoutDashboard,
-  Map,
   Users,
-  Route,
-  ClipboardList,
+  Map,
   Menu,
   Bell,
   ChevronRight,
+  ChevronDown,
   UserPlus,
   LogOut,
+  X,
+  Home,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 
 const navigation = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Matatus', path: '/admin/matatus', icon: Bus },
-  { label: 'Routes', path: '/admin/routes', icon: Map },
-  { label: 'Users', path: '/admin/users', icon: Users },
-  { label: 'Create User', path: '/admin/create-user', icon: UserPlus },
-  { label: 'Trips', path: '/admin/trips', icon: Route },
-  { label: 'Requests', path: '/admin/requests', icon: ClipboardList },
+  {
+    label: 'Manage Conductor',
+    icon: Users,
+    id: 'conductor',
+    children: [
+      {
+        label: 'Add Conductor',
+        path: '/admin/create-user',
+        icon: UserPlus,
+      },
+      {
+        label: 'View Conductors',
+        path: '/admin/users',
+        icon: Users,
+      },
+    ],
+  },
+  {
+    label: 'Manage Matatu',
+    icon: Bus,
+    id: 'matatu',
+    children: [
+      {
+        label: 'View Matatus',
+        path: '/admin/matatus',
+        icon: Bus,
+      },
+    ],
+  },
+  {
+    label: 'Manage Routes',
+    icon: Map,
+    id: 'routes',
+    children: [
+      {
+        label: 'View Routes',
+        path: '/admin/routes',
+        icon: Map,
+      },
+    ],
+  },
 ]
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [expandedSection, setExpandedSection] = useState(null)
+
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    const activeSection = navigation.find((section) =>
+      section.children.some((child) =>
+        location.pathname === child.path
+      )
+    )
+
+    if (activeSection) {
+      setExpandedSection(activeSection.id)
+    }
+  }, [location.pathname])
+
+  function toggleSection(sectionId) {
+    setExpandedSection((current) =>
+      current === sectionId ? null : sectionId
+    )
+  }
+
+  function handleHome() {
+    setSidebarOpen(false)
+    navigate('/')
+  }
 
   async function handleLogout() {
     if (loggingOut) return
@@ -68,38 +128,97 @@ export default function AdminLayout() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600">
             <Bus size={23} />
           </div>
+
           <div>
             <p className="text-lg font-bold">
               Smart <span className="text-blue-400">Matatu</span>
             </p>
-            <p className="text-xs text-slate-400">Management portal</p>
+            <p className="text-xs text-slate-400">
+              Management portal
+            </p>
           </div>
+
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setSidebarOpen(false)}
+            className="ml-auto rounded-lg p-1 hover:bg-white/10 md:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="px-4 pt-7">
+        <div className="px-4 pt-4">
+          <button
+            type="button"
+            onClick={handleHome}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <Home size={19} />
+            <span>Home</span>
+          </button>
+        </div>
+
+        <div className="px-4 pt-4">
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
             Workspace
           </p>
 
-          <nav className="space-y-1">
-            {navigation.map(({ label, path, icon: Icon }) => (
-              <NavLink
-                key={path}
-                to={path}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                  }`
-                }
-              >
-                <Icon size={19} />
-                <span>{label}</span>
-                <ChevronRight size={15} className="ml-auto opacity-50" />
-              </NavLink>
-            ))}
+          <nav className="space-y-2">
+            {navigation.map(({ id, label, icon: Icon, children }) => {
+              const isExpanded = expandedSection === id
+              const isActiveSection = children.some(
+                (child) => location.pathname === child.path
+              )
+
+              return (
+                <div key={id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(id)}
+                    aria-expanded={isExpanded}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                      isActiveSection
+                        ? 'bg-blue-600/15 text-blue-300'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={19} />
+                    <span className="flex-1 text-left">{label}</span>
+
+                    {isExpanded ? (
+                      <ChevronDown size={17} />
+                    ) : (
+                      <ChevronRight size={17} />
+                    )}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                      {children.map(
+                        ({ label: childLabel, path, icon: ChildIcon }) => (
+                          <NavLink
+                            key={path}
+                            to={path}
+                            onClick={() => setSidebarOpen(false)}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
+                                isActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                              }`
+                            }
+                          >
+                            <ChildIcon size={17} />
+                            <span>{childLabel}</span>
+                          </NavLink>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </nav>
         </div>
 
@@ -127,6 +246,7 @@ export default function AdminLayout() {
             >
               <Menu size={22} />
             </button>
+
             <div>
               <p className="text-sm text-slate-500">Smart Matatu</p>
               <h1 className="text-lg font-bold">Admin workspace</h1>

@@ -77,7 +77,7 @@ export default function Login() {
   if (currentUser) {
     const home =
       currentUser.role === 'admin'
-        ? '/admin/dashboard'
+        ? '/admin/create-user'
         : currentUser.role === 'conductor'
           ? '/conductor'
           : '/'
@@ -112,13 +112,13 @@ export default function Login() {
         destination?.startsWith('/conductor') &&
         result.user.role !== 'conductor'
       ) {
-        navigate('/admin/dashboard', { replace: true })
+        navigate('/admin/create-user', { replace: true })
         return
       }
 
       const home =
         result.user.role === 'admin'
-          ? '/admin/dashboard'
+          ? '/admin/create-user'
           : result.user.role === 'conductor'
             ? '/conductor'
             : '/'

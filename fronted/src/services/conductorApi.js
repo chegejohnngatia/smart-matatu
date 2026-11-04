@@ -103,4 +103,29 @@ export async function acknowledgeEmergencyAlert(alertId) {
   return data;
 }
 
+export async function getConductorQRCode() {
+  const response = await fetch(
+    `${API_BASE_URL}/api/conductor/qr-code`,
+    {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
+    }
+  )
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      `Could not generate QR code: ${response.status}`
+    )
+  }
+
+  return data
+}
+
 

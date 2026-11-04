@@ -8,8 +8,8 @@ import {
   Wallet,
   ArrowLeftRight,
   BellRing,
+  QrCode,
   Menu,
-  ShieldCheck,
   ChevronRight,
   X,
   LogOut,
@@ -38,6 +38,11 @@ const links = [
     path: '/conductor/emergency-alerts',
     icon: BellRing,
   },
+  {
+    label: 'Generate QR Code',
+    path: '/conductor/qr-code',
+    icon: QrCode,
+  },
 ]
 
 export default function ConductorLayout() {
@@ -50,8 +55,8 @@ export default function ConductorLayout() {
     navigate('/')
   }
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     navigate('/login', { replace: true })
   }
 
@@ -78,9 +83,11 @@ export default function ConductorLayout() {
 
           <div>
             <p className="text-lg font-bold">
-              Matatu <span className="text-emerald-400">Smart</span>
+              Smart <span className="text-emerald-400">Matatu</span>
             </p>
-            <p className="text-xs text-slate-400">Conductor workspace</p>
+            <p className="text-xs text-slate-400">
+              Conductor workspace
+            </p>
           </div>
 
           <button
@@ -130,38 +137,17 @@ export default function ConductorLayout() {
           ))}
         </nav>
 
-        <div className="mt-auto p-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <ShieldCheck size={18} className="text-emerald-400" />
-              Conductor access
-            </div>
-
-            <p className="text-xs leading-5 text-slate-400">
-              Manage passenger destinations, balances, destination-change
-              requests, and emergency alerts.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleHome}
-            className="mt-4 flex w-full items-center gap-3 rounded-xl bg-emerald-600/10 px-3 py-3 text-sm font-medium text-emerald-300 transition hover:bg-emerald-600 hover:text-white"
-          >
-            <Home size={18} />
-            Home
-          </button>
-
+        <div className="px-3 pt-1">
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
           >
             <LogOut size={18} />
             Sign out
           </button>
 
-          <p className="mt-4 text-center text-xs text-slate-500">
+          <p className="mt-3 text-center text-xs text-slate-500">
             Smart Matatu
           </p>
         </div>
@@ -181,13 +167,17 @@ export default function ConductorLayout() {
 
             <div>
               <p className="text-sm text-slate-500">Smart Matatu</p>
-              <h1 className="text-lg font-bold">Conductor workspace</h1>
+              <h1 className="text-lg font-bold">
+                Conductor workspace
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
-              {(currentUser?.name || 'Conductor').charAt(0).toUpperCase()}
+              {(currentUser?.name || 'Conductor')
+                .charAt(0)
+                .toUpperCase()}
             </div>
 
             <div className="hidden sm:block">
