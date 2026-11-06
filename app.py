@@ -458,6 +458,1403 @@ def api_logout():
         "message": "Logout successful."
     }), 200
 
+# =====================================================
+# ADMIN: ROUTE MANAGEMENT
+# =====================================================
+
+@app.route("/api/admin/routes", methods=["GET"])
+@admin_required
+def get_admin_routes():
+    connection = get_db_connection()
+
+    try:
+        routes = connection.execute("""
+            SELECT
+                r.id,
+                r.name,
+                r.description,
+                r.is_active,
+                r.created_at,
+                r.updated_at,
+                COUNT(s.id) AS stage_count
+            FROM routes AS r
+            LEFT JOIN stages AS s
+                ON s.route_id = r.id
+            GROUP BY
+                r.id,
+                r.name,
+                r.description,
+                r.is_active,
+                r.created_at,
+                r.updated_at
+            ORDER BY r.name ASC
+        """).fetchall()
+
+        return jsonify({
+            "success": True,
+            "routes": [
+                {
+                    "id": route["id"],
+                    "name": route["name"],
+                    "description": route["description"],
+                    "is_active": bool(route["is_active"]),
+                    "created_at": route["created_at"],
+                    "updated_at": route["updated_at"],
+                    "stage_count": route["stage_count"]
+                }
+                for route in routes
+            ]
+        }), 200
+
+    except sqlite3.Error:
+        app.logger.exception("Failed to retrieve routes.")
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve routes."
+        }), 500
+
+    finally:
+        connection.close()
+
+@app.route("/api/admin/routes", methods=["POST"])
+@admin_required
+@csrf_required
+def create_admin_route():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON request is required."
+        }), 400
+
+    name = data.get("name")
+    description = data.get("description")
+
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({
+            "success": False,
+            "message": "Route name is required."
+        }), 400
+
+    name = name.strip()
+
+    if description is not None and not isinstance(description, str):
+        return jsonify({
+            "success": False,
+            "message": "Route description must be text."
+        }), 400
+
+    description = description.strip() if description else None
+
+    connection = get_db_connection()
+
+    try:
+        cursor = connection.execute("""
+            INSERT INTO routes (name, description)
+            VALUES (?, ?)
+        """, (name, description))
+
+        route_id = cursor.lastrowid
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route created successfully.",
+            "route": {
+                "id": route_id,
+                "name": name,
+                "description": description,
+                "is_active": True,
+                "stage_count": 0
+            }
+        }), 201
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": "A route with this name already exists."
+        }), 409
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception("Failed to create route.")
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to create route."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route("/api/admin/routes/<int:route_id>", methods=["PUT"])
+@admin_required
+@csrf_required
+def update_admin_route(route_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON request is required."
+        }), 400
+
+    if "name" not in data and "description" not in data:
+        return jsonify({
+            "success": False,
+            "message": "No route details provided."
+        }), 400
+
+    name = data.get("name")
+    description = data.get("description")
+
+    if "name" in data:
+        if not isinstance(name, str) or not name.strip():
+            return jsonify({
+                "success": False,
+                "message": "Route name cannot be empty."
+            }), 400
+
+        name = name.strip()
+
+    if "description" in data:
+        if description is not None and not isinstance(description, str):
+            return jsonify({
+                "success": False,
+                "message": "Route description must be text."
+            }), 400
+
+        description = description.strip() if description else None
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id, name, description
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        new_name = name if "name" in data else route["name"]
+
+        new_description = (
+            description
+            if "description" in data
+            else route["description"]
+        )
+
+        connection.execute("""
+            UPDATE routes
+            SET name = ?,
+                description = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (new_name, new_description, route_id))
+
+        # Synchronize legacy route names while preserving IDs.
+        if new_name != route["name"]:
+            connection.execute("""
+                UPDATE stages
+                SET route_name = ?
+                WHERE route_id = ?
+            """, (new_name, route_id))
+
+            connection.execute("""
+                UPDATE matatus
+                SET route_name = ?
+                WHERE route_id = ?
+            """, (new_name, route_id))
+
+        stage_count = connection.execute("""
+            SELECT COUNT(*)
+            FROM stages
+            WHERE route_id = ?
+        """, (route_id,)).fetchone()[0]
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route updated successfully.",
+            "route": {
+                "id": route_id,
+                "name": new_name,
+                "description": new_description,
+                "stage_count": stage_count
+            }
+        }), 200
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": "A route with this name already exists."
+        }), 409
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to update route %s.", route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to update route."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/routes/<int:route_id>/deactivate",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def deactivate_admin_route(route_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id, name, is_active
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        if route["is_active"] == 0:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Route is already inactive."
+            }), 409
+
+        connection.execute("""
+            UPDATE routes
+            SET is_active = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (route_id,))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route deactivated successfully.",
+            "route": {
+                "id": route_id,
+                "name": route["name"],
+                "is_active": False
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to deactivate route %s.", route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to deactivate route."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/routes/<int:route_id>/activate",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def activate_admin_route(route_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id, name, is_active
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        if route["is_active"] == 1:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Route is already active."
+            }), 409
+
+        connection.execute("""
+            UPDATE routes
+            SET is_active = 1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (route_id,))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route activated successfully.",
+            "route": {
+                "id": route_id,
+                "name": route["name"],
+                "is_active": True
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to activate route %s.", route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to activate route."
+        }), 500
+
+    finally:
+        connection.close()
+
+@app.route(
+    "/api/admin/routes/<int:route_id>",
+    methods=["DELETE"]
+)
+@admin_required
+@csrf_required
+def delete_admin_route(route_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id, name
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        stage_count = connection.execute("""
+            SELECT COUNT(*)
+            FROM stages
+            WHERE route_id = ?
+        """, (route_id,)).fetchone()[0]
+
+        matatu_count = connection.execute("""
+            SELECT COUNT(*)
+            FROM matatus
+            WHERE route_id = ?
+        """, (route_id,)).fetchone()[0]
+
+        if stage_count > 0 or matatu_count > 0:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Route cannot be deleted while dependent "
+                    "stages or matatus exist."
+                ),
+                "dependencies": {
+                    "stages": stage_count,
+                    "matatus": matatu_count
+                }
+            }), 409
+
+        connection.execute("""
+            DELETE FROM routes
+            WHERE id = ?
+        """, (route_id,))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route deleted successfully.",
+            "route": {
+                "id": route_id,
+                "name": route["name"]
+            }
+        }), 200
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+        app.logger.exception(
+            "Route %s deletion blocked by database constraints.",
+            route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Route cannot be deleted because dependent "
+                "records still exist."
+            )
+        }), 409
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to delete route %s.", route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to delete route."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route("/api/admin/routes/<int:route_id>/stages", methods=["POST"])
+@admin_required
+@csrf_required
+def create_admin_route_stage(route_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON object is required."
+        }), 400
+
+    name = data.get("name")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    position = data.get("position")
+
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({
+            "success": False,
+            "message": "Stage name is required."
+        }), 400
+
+    if (
+        isinstance(latitude, bool)
+        or not isinstance(latitude, (int, float))
+        or not -90 <= latitude <= 90
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Latitude must be a number between -90 and 90."
+        }), 400
+
+    if (
+        isinstance(longitude, bool)
+        or not isinstance(longitude, (int, float))
+        or not -180 <= longitude <= 180
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Longitude must be a number between -180 and 180."
+        }), 400
+
+    if (
+        isinstance(position, bool)
+        or not isinstance(position, int)
+        or position < 1
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Position must be a positive integer."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id, name
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        active_stages = connection.execute("""
+            SELECT id, sequence_number
+            FROM stages
+            WHERE route_id = ?
+              AND is_archived = 0
+            ORDER BY sequence_number ASC, id ASC
+        """, (route_id,)).fetchall()
+
+        active_count = len(active_stages)
+
+        if position > active_count + 1:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Position is outside the valid stage range."
+            }), 400
+
+        # Move existing active stages to temporary unique positions.
+        max_sequence = max(
+            (stage["sequence_number"] for stage in active_stages),
+            default=0
+        )
+        offset = max_sequence + active_count + 2
+
+        for stage in active_stages:
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (
+                stage["sequence_number"] + offset,
+                stage["id"]
+            ))
+
+        # Insert the new stage at a temporary position.
+        temporary_position = max_sequence + (2 * offset) + 1
+
+        cursor = connection.execute("""
+            INSERT INTO stages (
+                route_name,
+                name,
+                latitude,
+                longitude,
+                sequence_number,
+                route_id,
+                is_archived,
+                archived_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 0, NULL)
+        """, (
+            route["name"],
+            name.strip(),
+            latitude,
+            longitude,
+            temporary_position,
+            route_id
+        ))
+
+        new_stage_id = cursor.lastrowid
+
+        # Construct the final order, inserting the new stage
+        # at the requested one-based position.
+        ordered_ids = [stage["id"] for stage in active_stages]
+        ordered_ids.insert(position - 1, new_stage_id)
+
+        # All existing stages are currently at temporary positions.
+        # Assign their final positions without unique-index conflicts.
+        for sequence, stage_id in enumerate(ordered_ids, start=1):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (sequence, stage_id))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Stage created successfully.",
+            "stage": {
+                "id": new_stage_id,
+                "route_id": route_id,
+                "route_name": route["name"],
+                "name": name.strip(),
+                "latitude": latitude,
+                "longitude": longitude,
+                "sequence_number": position,
+                "is_archived": False,
+                "archived_at": None
+            }
+        }), 201
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+        app.logger.exception(
+            "Stage creation integrity error for route %s.", route_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Stage creation conflicts with existing data."
+        }), 409
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to create stage for route %s.", route_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to create stage."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route("/api/admin/stages/<int:stage_id>", methods=["PUT"])
+@admin_required
+@csrf_required
+def update_admin_stage(stage_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON object is required."
+        }), 400
+
+    name = data.get("name")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({
+            "success": False,
+            "message": "Stage name is required."
+        }), 400
+
+    if (
+        isinstance(latitude, bool)
+        or not isinstance(latitude, (int, float))
+        or not -90 <= latitude <= 90
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Latitude must be a number between -90 and 90."
+        }), 400
+
+    if (
+        isinstance(longitude, bool)
+        or not isinstance(longitude, (int, float))
+        or not -180 <= longitude <= 180
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Longitude must be a number between -180 and 180."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        stage = connection.execute("""
+            SELECT id, route_id, route_name, name,
+                   latitude, longitude, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        if stage is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage not found."
+            }), 404
+
+
+        connection.execute("""
+            UPDATE stages
+            SET name = ?,
+                latitude = ?,
+                longitude = ?
+            WHERE id = ?
+        """, (
+            name.strip(),
+            latitude,
+            longitude,
+            stage_id
+        ))
+
+        updated_stage = connection.execute("""
+            SELECT id, route_id, route_name, name,
+                   latitude, longitude, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Stage updated successfully.",
+            "stage": {
+                "id": updated_stage["id"],
+                "route_id": updated_stage["route_id"],
+                "route_name": updated_stage["route_name"],
+                "name": updated_stage["name"],
+                "latitude": updated_stage["latitude"],
+                "longitude": updated_stage["longitude"],
+                "sequence_number": updated_stage["sequence_number"],
+                "is_archived": bool(updated_stage["is_archived"]),
+                "archived_at": updated_stage["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to update stage %s.", stage_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to update stage."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route("/api/admin/stages/<int:stage_id>/archive", methods=["POST"])
+@admin_required
+@csrf_required
+def archive_admin_stage(stage_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        stage = connection.execute("""
+            SELECT id, route_id, name, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        if stage is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage not found."
+            }), 404
+
+
+        if stage["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage is already archived."
+            }), 409
+
+        route_id = stage["route_id"]
+
+        # Archive first so the partial unique index excludes this stage.
+        connection.execute("""
+            UPDATE stages
+            SET is_archived = 1,
+                archived_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (stage_id,))
+
+        # Retrieve the remaining active stages in their current order.
+        active_stages = connection.execute("""
+            SELECT id, sequence_number
+            FROM stages
+            WHERE route_id IS ?
+              AND is_archived = 0
+            ORDER BY sequence_number ASC, id ASC
+        """, (route_id,)).fetchall()
+
+        # Move all remaining stages to temporary positions first.
+        # This avoids collisions with the unique active-stage index.
+        max_sequence = max(
+            (row["sequence_number"] for row in active_stages),
+            default=0
+        )
+        temporary_base = max_sequence + len(active_stages) + 1
+
+        for offset, active_stage in enumerate(active_stages, start=1):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (
+                temporary_base + offset,
+                active_stage["id"]
+            ))
+
+        # Assign consecutive active positions starting at 1.
+        for position, active_stage in enumerate(active_stages, start=1):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (
+                position,
+                active_stage["id"]
+            ))
+
+        archived_stage = connection.execute("""
+            SELECT id, route_id, route_name, name,
+                   latitude, longitude, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Stage archived successfully.",
+            "stage": {
+                "id": archived_stage["id"],
+                "route_id": archived_stage["route_id"],
+                "route_name": archived_stage["route_name"],
+                "name": archived_stage["name"],
+                "latitude": archived_stage["latitude"],
+                "longitude": archived_stage["longitude"],
+                "sequence_number": archived_stage["sequence_number"],
+                "is_archived": bool(archived_stage["is_archived"]),
+                "archived_at": archived_stage["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to archive stage %s.", stage_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to archive stage."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route("/api/admin/stages/<int:stage_id>/restore", methods=["POST"])
+@admin_required
+@csrf_required
+def restore_admin_stage(stage_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON object is required."
+        }), 400
+
+    position = data.get("position")
+
+    if (
+        isinstance(position, bool)
+        or not isinstance(position, int)
+        or position < 1
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Position must be a positive integer."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        stage = connection.execute("""
+            SELECT id, route_id, route_name, name,
+                   latitude, longitude, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        if stage is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage not found."
+            }), 404
+
+
+        if not stage["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage is already active."
+            }), 409
+
+        route_id = stage["route_id"]
+
+        if route_id is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage is not assigned to a route."
+            }), 409
+
+        active_stages = connection.execute("""
+            SELECT id, sequence_number
+            FROM stages
+            WHERE route_id = ?
+              AND is_archived = 0
+            ORDER BY sequence_number ASC, id ASC
+        """, (route_id,)).fetchall()
+
+        active_count = len(active_stages)
+
+        if position > active_count + 1:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": (
+                    f"Position must be between 1 and {active_count + 1}."
+                )
+            }), 400
+
+        # Move existing active stages to temporary positions.
+        # This prevents collisions with the partial unique index.
+        max_sequence = max(
+            (row["sequence_number"] for row in active_stages),
+            default=0
+        )
+        temporary_base = max_sequence + active_count + 1
+
+        for offset, active_stage in enumerate(active_stages, start=1):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (
+                temporary_base + offset,
+                active_stage["id"]
+            ))
+
+        # Restore the stage at a temporary position.
+        restored_temp_position = temporary_base + active_count + 1
+
+        connection.execute("""
+            UPDATE stages
+            SET is_archived = 0,
+                archived_at = NULL,
+                sequence_number = ?
+            WHERE id = ?
+        """, (restored_temp_position, stage_id))
+
+        # Insert the restored stage into the requested position.
+        ordered_stage_ids = [
+            row["id"] for row in active_stages
+        ]
+        ordered_stage_ids.insert(position - 1, stage_id)
+
+        # Assign final consecutive positions.
+        for new_position, ordered_stage_id in enumerate(
+            ordered_stage_ids, start=1
+        ):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+            """, (new_position, ordered_stage_id))
+
+        restored_stage = connection.execute("""
+            SELECT id, route_id, route_name, name,
+                   latitude, longitude, sequence_number,
+                   is_archived, archived_at
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Stage restored successfully.",
+            "stage": {
+                "id": restored_stage["id"],
+                "route_id": restored_stage["route_id"],
+                "route_name": restored_stage["route_name"],
+                "name": restored_stage["name"],
+                "latitude": restored_stage["latitude"],
+                "longitude": restored_stage["longitude"],
+                "sequence_number": restored_stage["sequence_number"],
+                "is_archived": bool(restored_stage["is_archived"]),
+                "archived_at": restored_stage["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to restore stage %s.", stage_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to restore stage."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route("/api/admin/stages/<int:stage_id>", methods=["DELETE"])
+@admin_required
+@csrf_required
+def delete_admin_stage(stage_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or data.get("confirm") is not True:
+        return jsonify({
+            "success": False,
+            "message": "Explicit confirmation is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        stage = connection.execute("""
+            SELECT id, route_id, name, is_archived
+            FROM stages
+            WHERE id = ?
+        """, (stage_id,)).fetchone()
+
+        if stage is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Stage not found."
+            }), 404
+
+
+        if not stage["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Only archived stages can be permanently deleted."
+            }), 409
+
+        # Check every historical reference, regardless of request status.
+        reference_checks = [
+            (
+                "passenger_destinations",
+                "destination_stage_id"
+            ),
+            (
+                "destination_change_requests",
+                "current_destination_stage_id"
+            ),
+            (
+                "destination_change_requests",
+                "requested_destination_stage_id"
+            )
+        ]
+
+        for table_name, column_name in reference_checks:
+            reference = connection.execute(
+                f"""
+                SELECT 1
+                FROM {table_name}
+                WHERE {column_name} = ?
+                LIMIT 1
+                """,
+                (stage_id,)
+            ).fetchone()
+
+            if reference is not None:
+                connection.rollback()
+                return jsonify({
+                    "success": False,
+                    "error": "STAGE_HAS_HISTORICAL_REFERENCES",
+                    "message": (
+                        "Stage cannot be deleted because historical "
+                        "passenger or journey records reference it."
+                    )
+                }), 409
+
+        connection.execute("""
+            DELETE FROM stages
+            WHERE id = ?
+        """, (stage_id,))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Stage permanently deleted.",
+            "stage_id": stage_id
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to permanently delete stage %s.", stage_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to permanently delete stage."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route("/api/admin/routes/<int:route_id>/stages/reorder", methods=["PUT"])
+@admin_required
+@csrf_required
+def reorder_admin_route_stages(route_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "Invalid request data."
+        }), 400
+
+    stage_ids = data.get("stage_ids")
+
+    if not isinstance(stage_ids, list):
+        return jsonify({
+            "success": False,
+            "message": "stage_ids must be a list."
+        }), 400
+
+    if any(
+        type(stage_id) is not int or stage_id <= 0
+        for stage_id in stage_ids
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Every stage ID must be a positive integer."
+        }), 400
+
+    if len(stage_ids) != len(set(stage_ids)):
+        return jsonify({
+            "success": False,
+            "message": "Duplicate stage IDs are not allowed."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        route = connection.execute("""
+            SELECT id
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        active_stages = connection.execute("""
+            SELECT id, sequence_number
+            FROM stages
+            WHERE route_id = ?
+              AND is_archived = 0
+            ORDER BY sequence_number ASC, id ASC
+        """, (route_id,)).fetchall()
+
+        existing_ids = {
+            stage["id"] for stage in active_stages
+        }
+
+        if (
+            len(stage_ids) != len(active_stages)
+            or set(stage_ids) != existing_ids
+        ):
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": (
+                    "The submitted stage IDs must contain every "
+                    "active stage belonging to this route exactly once."
+                )
+            }), 400
+
+        max_sequence = max(
+            (
+                stage["sequence_number"]
+                for stage in active_stages
+            ),
+            default=0
+        )
+
+        temporary_offset = (
+            max_sequence + len(active_stages) + 1000
+        )
+
+        # Move active stages to temporary sequence numbers.
+        connection.execute("""
+            UPDATE stages
+            SET sequence_number = sequence_number + ?
+            WHERE route_id = ?
+              AND is_archived = 0
+        """, (temporary_offset, route_id))
+
+        # Apply the requested final ordering.
+        for position, stage_id in enumerate(stage_ids, start=1):
+            connection.execute("""
+                UPDATE stages
+                SET sequence_number = ?
+                WHERE id = ?
+                  AND route_id = ?
+                  AND is_archived = 0
+            """, (position, stage_id, route_id))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Route stages reordered successfully.",
+            "stage_ids": stage_ids
+        }), 200
+
+    except sqlite3.Error:
+        if connection.in_transaction:
+            connection.rollback()
+
+        app.logger.exception(
+            "Failed to reorder stages for route %s.",
+            route_id
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to reorder route stages."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route("/api/admin/routes/<int:route_id>/stages", methods=["GET"])
+@admin_required
+def get_admin_route_stages(route_id):
+    connection = get_db_connection()
+
+    try:
+        route = connection.execute("""
+            SELECT id, name, description, is_active
+            FROM routes
+            WHERE id = ?
+        """, (route_id,)).fetchone()
+
+        if route is None:
+
+
+            return jsonify({
+                "success": False,
+                "message": "Route not found."
+            }), 404
+
+        stages = connection.execute("""
+            SELECT
+                id,
+                route_id,
+                route_name,
+                name,
+                latitude,
+                longitude,
+                sequence_number,
+                is_archived,
+                archived_at
+            FROM stages
+            WHERE route_id = ?
+            ORDER BY sequence_number ASC, id ASC
+        """, (route_id,)).fetchall()
+
+        return jsonify({
+            "success": True,
+            "route": {
+                "id": route["id"],
+                "name": route["name"],
+                "description": route["description"],
+                "is_active": route["is_active"]
+            },
+            "stages": [
+                {
+                    "id": stage["id"],
+                    "route_id": stage["route_id"],
+                    "route_name": stage["route_name"],
+                    "name": stage["name"],
+                    "latitude": stage["latitude"],
+                    "longitude": stage["longitude"],
+                    "sequence_number": stage["sequence_number"],
+                    "is_archived": bool(stage["is_archived"]),
+                    "archived_at": stage["archived_at"]
+                }
+                for stage in stages
+            ]
+        }), 200
+
+    except sqlite3.Error:
+        app.logger.exception(
+            "Failed to retrieve stages for route %s.",
+            route_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve route stages."
+        }), 500
+
+    finally:
+        connection.close()
+
+
 @app.route("/api/admin/matatus", methods=["GET"])
 @admin_required
 def get_admin_matatus():
@@ -3913,61 +5310,6 @@ def reset_matatu(matatu_id):
 
     return redirect(url_for("move_matatu", matatu_id=matatu_id))
 
-@app.route("/gps-test")
-def gps_test():
-
-    connection = get_db_connection()
-
-    stage = connection.execute(
-        """
-        SELECT * FROM stages
-        WHERE name = 'GPS test'
-        """
-    ).fetchone()
-
-    connection.close()
-
-    if stage is None:
-        return "GPS test stage not found in the database."
-
-    # Simulated matatu location
-    matatu_latitude = -1.286389
-    matatu_longitude = 36.817223
-
-    # Destination stage location from database
-    stage_latitude = stage["latitude"]
-    stage_longitude = stage["longitude"]
-
-    distance = calculate_distance(
-        matatu_latitude,
-        matatu_longitude,
-        stage_latitude,
-        stage_longitude
-    )
-
-    return f"""
-        <h1>GPS DATABASE TEST</h1>
-
-        <p>
-            Destination Stage:
-            <strong>{stage["name"]}</strong>
-        </p>
-
-        <p>
-            Stage Latitude:
-            <strong>{stage_latitude}</strong>
-        </p>
-
-        <p>
-            Stage Longitude:
-            <strong>{stage_longitude}</strong>
-        </p>
-
-        <p>
-            Distance from Matatu:
-            <strong>{distance:.2f} metres</strong>
-        </p>
-    """
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
