@@ -48,7 +48,24 @@ def init_db():
             latitude REAL NOT NULL,
             longitude REAL NOT NULL,
             current_stage_sequence INTEGER DEFAULT 0,
-            speed REAL DEFAULT 20
+            speed REAL DEFAULT 20,
+            accuracy REAL,
+            last_updated_at TEXT,
+            location_source TEXT DEFAULT 'simulation'
+        )
+    """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS matatu_location_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            matatu_id INTEGER NOT NULL,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            speed REAL,
+            accuracy REAL,
+            source TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            received_at TEXT NOT NULL
         )
     """)
 
@@ -60,6 +77,20 @@ def init_db():
         connection.execute(
             "ALTER TABLE matatu_locations ADD COLUMN speed REAL DEFAULT 20"
         )
+    for column, definition in (
+        ("accuracy", "REAL"),
+        ("last_updated_at", "TEXT"),
+        ("location_source", "TEXT DEFAULT 'simulation'"),
+    ):
+        if column not in location_columns:
+            connection.execute(
+                f"ALTER TABLE matatu_locations ADD COLUMN {column} {definition}"
+            )
+
+    connection.execute("""
+        CREATE INDEX IF NOT EXISTS idx_matatu_location_history_matatu_recorded
+        ON matatu_location_history (matatu_id, recorded_at)
+    """)
 
     connection.commit()
     connection.close()

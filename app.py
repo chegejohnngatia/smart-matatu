@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, send_from_directory
 from database import init_db, get_db_connection
 from gps import calculate_distance
+from location_service import LocationUpdateError, update_matatu_location
+from datetime import datetime, timezone
 import socket
 import qrcode
 import io
@@ -29,6 +31,8 @@ FRONTEND_ORIGINS = {
     if origin.strip()
 }
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
+LOCATION_SOURCE = os.getenv("LOCATION_SOURCE", "simulation").strip().lower()
+CONDUCTOR_LOCATION_TOKEN = os.getenv("CONDUCTOR_LOCATION_TOKEN", "").strip()
 
 
 @app.after_request
@@ -51,6 +55,42 @@ def handle_not_found(error):
 
 def row_to_dict(row):
     return dict(row) if row else None
+
+
+def location_age_seconds(last_updated_at):
+    if not last_updated_at:
+        return None
+    updated_at = datetime.fromisoformat(last_updated_at.replace("Z", "+00:00"))
+    return max(0, (datetime.now(timezone.utc) - updated_at).total_seconds())
+
+
+def location_payload(location):
+    age_seconds = location_age_seconds(location["last_updated_at"])
+    return {
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "speed": location["speed"],
+        "accuracy": location["accuracy"],
+        "source": location["location_source"] or "simulation",
+        "last_updated_at": location["last_updated_at"],
+        "age_seconds": age_seconds,
+        "stale": age_seconds is None or age_seconds > 60,
+    }
+
+
+def require_location_update_authorization(matatu_id):
+    if not CONDUCTOR_LOCATION_TOKEN:
+        return jsonify({"error": {"message": "Location update authorization is not configured"}}), 503
+    if request.headers.get("X-Conductor-Token") != CONDUCTOR_LOCATION_TOKEN:
+        return jsonify({"error": {"message": "Unauthorized location update"}}), 403
+    assigned_matatu_header = request.headers.get("X-Conductor-Matatu-Id")
+    try:
+        assigned_matatu_id = int(assigned_matatu_header) if assigned_matatu_header else None
+    except ValueError:
+        return jsonify({"error": {"message": "Invalid assigned matatu"}}), 403
+    if assigned_matatu_id is not None and assigned_matatu_id != matatu_id:
+        return jsonify({"error": {"message": "Conductor is not assigned to this matatu"}}), 403
+    return None
 
 
 @app.route("/api/matatus", methods=["GET"])
@@ -582,7 +622,11 @@ def vehicle_status(matatu_id):
     connection.close()
 
     if not passengers:
-        return "No passenger destinations registered."
+        return jsonify({
+            "matatu": matatu["registration_number"],
+            "location": location_payload(location),
+            "passengers": [],
+        })
 
     results = []
 
@@ -635,8 +679,46 @@ def vehicle_status(matatu_id):
 
     return {
         "matatu": matatu["registration_number"],
+        "location": location_payload(location),
         "passengers": results
     }
+
+
+@app.route("/api/matatus/<int:matatu_id>/location", methods=["POST", "OPTIONS"])
+def api_update_matatu_location(matatu_id):
+    if request.method == "OPTIONS":
+        return "", 204
+
+    authorization_error = require_location_update_authorization(matatu_id)
+    if authorization_error:
+        return authorization_error
+    if LOCATION_SOURCE != "gps":
+        return jsonify({
+            "error": {"message": "GPS location updates are disabled by configuration"}
+        }), 409
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        connection = get_db_connection()
+        result = update_matatu_location(
+            connection,
+            matatu_id,
+            payload.get("latitude"),
+            payload.get("longitude"),
+            payload.get("speed"),
+            payload.get("accuracy"),
+            payload.get("recorded_at"),
+            "gps",
+        )
+        connection.commit()
+        connection.close()
+    except LocationUpdateError as error:
+        if "connection" in locals():
+            connection.rollback()
+            connection.close()
+        return jsonify({"error": {"message": str(error)}}), error.status_code
+
+    return jsonify(result), 200
 
 @app.route("/move-matatu/<int:matatu_id>", methods=["GET", "POST"])
 def move_matatu(matatu_id):
@@ -692,22 +774,15 @@ def move_matatu(matatu_id):
             ).fetchone()
 
             if next_stage is not None:
-
-                connection.execute(
-                    """
-                    UPDATE matatu_locations
-                    SET latitude = ?,
-                        longitude = ?,
-                        current_stage_sequence = ?,
-                        speed = 20
-                    WHERE matatu_id = ?
-                    """,
-                    (
-                        next_stage["latitude"],
-                        next_stage["longitude"],
-                        next_stage["sequence_number"],
-                        matatu_id
-                    )
+                update_matatu_location(
+                    connection,
+                    matatu_id,
+                    next_stage["latitude"],
+                    next_stage["longitude"],
+                    20,
+                    0,
+                    datetime.now(timezone.utc),
+                    "simulation",
                 )
 
         # Stop the matatu
@@ -956,20 +1031,16 @@ def reset_matatu(matatu_id):
 
     connection = get_db_connection()
 
-    connection.execute(
-        """
-        UPDATE matatu_locations
-        SET latitude = ?,
-            longitude = ?,
-            current_stage_sequence = ?
-        WHERE matatu_id = ?
-        """,
-        (
-            -1.286389,
-            36.817223,
-            0,
-            matatu_id
-        )
+    update_matatu_location(
+        connection,
+        matatu_id,
+        -1.286389,
+        36.817223,
+        20,
+        0,
+        datetime.now(timezone.utc),
+        "simulation",
+        reset_stage=True,
     )
 
     connection.commit()
