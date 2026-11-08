@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000";
+  import.meta.env.VITE_API_BASE_URL || '';
 
 const MATATU_ID =
   import.meta.env.VITE_CONDUCTOR_MATATU_ID || "1";

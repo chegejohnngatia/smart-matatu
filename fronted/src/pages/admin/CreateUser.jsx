@@ -1,4 +1,4 @@
-
+﻿
 import { useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '../../context/AuthContext'
@@ -26,7 +26,7 @@ export default function CreateUser() {
 
     async function loadMatatus() {
       try {
-        const response = await fetch('/api/admin/matatus', {
+        const response = await fetch('/api/admin/matatus/available', {
           method: 'GET',
           credentials: 'include',
         })
@@ -191,7 +191,7 @@ export default function CreateUser() {
 
               {matatus.map((matatu) => (
                 <option key={matatu.id} value={matatu.id}>
-                  {matatu.registration_number} — {matatu.route_name}
+                  {matatu.registration_number} â€” {matatu.route_name}
                 </option>
               ))}
             </select>

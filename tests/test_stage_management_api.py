@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -45,6 +45,22 @@ class TestStageManagementAPI(unittest.TestCase):
         connection.execute("PRAGMA foreign_keys = ON")
 
         connection.executescript("""
+            CREATE TABLE admins (
+                id INTEGER PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            INSERT INTO admins (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                1, 'Test Admin', 'admin@test.com', 'test-hash', 1
+            );
+
             CREATE TABLE routes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,

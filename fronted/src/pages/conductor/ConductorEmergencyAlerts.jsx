@@ -7,7 +7,7 @@ import {
   Clock,
   ChevronDown,
 } from 'lucide-react'
-
+import { useAuth } from '../../context/AuthContext'
 import {
   getConductorEmergencyAlerts,
   acknowledgeEmergencyAlert,
@@ -77,6 +77,9 @@ function AlertCard({ alert, onAcknowledge, acknowledgingId }) {
 }
 
 export default function ConductorEmergencyAlerts() {
+  // Retrieve the authenticated session's CSRF token.
+  const { csrfToken } = useAuth()
+
   const [emergencyAlerts, setEmergencyAlerts] = useState({
     unresolved_count: 0,
     active_alerts: [],
@@ -133,7 +136,8 @@ export default function ConductorEmergencyAlerts() {
     setAcknowledgementMessage('')
 
     try {
-      await acknowledgeEmergencyAlert(alertId)
+      // Send the authenticated session's CSRF token.
+      await acknowledgeEmergencyAlert(alertId, csrfToken)
 
       setAcknowledgementMessage('Alert acknowledged successfully.')
 

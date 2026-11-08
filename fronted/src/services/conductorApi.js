@@ -1,6 +1,6 @@
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000";
+  import.meta.env.VITE_API_BASE_URL || '';
 
 const MATATU_ID =
   import.meta.env.VITE_CONDUCTOR_MATATU_ID || "1";
@@ -21,21 +21,20 @@ export async function getConductorDashboard() {
   return response.json();
 }
 
-
 export async function getDestinationChangeRequests() {
   const response = await fetch(
     `${API_BASE_URL}/api/conductor/destination-change-requests/${MATATU_ID}`
-  )
+  );
 
-  const data = await response.json().catch(() => ({}))
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
       data.error || `Could not load requests: ${response.status}`
-    )
+    );
   }
 
-  return data.requests || []
+  return data.requests || [];
 }
 
 export async function decideDestinationChangeRequest(requestId, action) {
@@ -48,19 +47,18 @@ export async function decideDestinationChangeRequest(requestId, action) {
       },
       body: JSON.stringify({ action }),
     }
-  )
+  );
 
-  const data = await response.json().catch(() => ({}))
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
       data.error || `Could not resolve request: ${response.status}`
-    )
+    );
   }
 
-  return data
+  return data;
 }
-
 
 export async function getConductorEmergencyAlerts() {
   const response = await fetch(
@@ -78,13 +76,20 @@ export async function getConductorEmergencyAlerts() {
   return data;
 }
 
-export async function acknowledgeEmergencyAlert(alertId) {
+// Acknowledge an emergency alert using the authenticated session and CSRF token.
+export async function acknowledgeEmergencyAlert(alertId, csrfToken) {
+  if (!csrfToken) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/api/conductor/emergency-alerts/${alertId}/acknowledge`,
     {
-      method: "POST",
+      method: 'POST',
+      credentials: 'include',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
       },
       body: JSON.stringify({
         matatu_id: Number(MATATU_ID),
@@ -113,19 +118,17 @@ export async function getConductorQRCode() {
         Accept: 'application/json',
       },
     }
-  )
+  );
 
-  const data = await response.json().catch(() => ({}))
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
       data.error ||
       data.message ||
       `Could not generate QR code: ${response.status}`
-    )
+    );
   }
 
-  return data
+  return data;
 }
-
-

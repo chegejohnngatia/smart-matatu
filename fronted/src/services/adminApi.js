@@ -206,3 +206,55 @@ export async function reorderAdminStages(routeId, stageIds, csrfToken) {
     }),
   })
 }
+
+
+// Retrieve all active and archived matatus.
+export async function getAdminMatatus() {
+  const data = await request('/api/admin/matatus')
+  return data.matatus || []
+}
+
+// Register a new matatu.
+export async function createAdminMatatu(matatuData, csrfToken) {
+  return request('/api/admin/matatus', {
+    method: 'POST',
+    headers: csrfJsonHeaders(csrfToken),
+    body: JSON.stringify(matatuData),
+  })
+}
+
+// Update an active matatu's registration number or route.
+export async function updateAdminMatatu(matatuId, matatuData, csrfToken) {
+  return request(`/api/admin/matatus/${matatuId}`, {
+    method: 'PUT',
+    headers: csrfJsonHeaders(csrfToken),
+    body: JSON.stringify(matatuData),
+  })
+}
+
+// Archive an active matatu.
+export async function archiveAdminMatatu(matatuId, csrfToken) {
+  return request(`/api/admin/matatus/${matatuId}/archive`, {
+    method: 'POST',
+    headers: csrfHeaders(csrfToken),
+  })
+}
+
+// Restore an archived matatu.
+export async function restoreAdminMatatu(matatuId, csrfToken) {
+  return request(`/api/admin/matatus/${matatuId}/restore`, {
+    method: 'POST',
+    headers: csrfHeaders(csrfToken),
+  })
+}
+
+// Permanently delete an archived matatu after explicit confirmation.
+export async function deleteAdminMatatu(matatuId, csrfToken) {
+  return request(`/api/admin/matatus/${matatuId}`, {
+    method: 'DELETE',
+    headers: csrfJsonHeaders(csrfToken),
+    body: JSON.stringify({
+      confirm: true,
+    }),
+  })
+}

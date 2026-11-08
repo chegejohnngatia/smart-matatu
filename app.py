@@ -90,6 +90,40 @@ def admin_required(f):
                 "message": "Administrator access required."
             }), 403
 
+        connection = None
+
+        try:
+            connection = get_db_connection()
+
+            admin = connection.execute(
+                """
+                SELECT is_active
+                FROM admins
+                WHERE id = ?
+                """
+                , (session["user_id"],)
+            ).fetchone()
+
+            if admin is None or admin["is_active"] != 1:
+                session.clear()
+
+                return jsonify({
+                    "success": False,
+                    "message": "Your administrator account is inactive. Please log in again."
+                }), 401
+
+        except Exception:
+            app.logger.exception("Failed to validate administrator session.")
+
+            return jsonify({
+                "success": False,
+                "message": "Unable to verify administrator access."
+            }), 500
+
+        finally:
+            if connection is not None:
+                connection.close()
+
         return f(*args, **kwargs)
 
     return decorated_function
@@ -1855,6 +1889,922 @@ def get_admin_route_stages(route_id):
         connection.close()
 
 
+@app.route("/api/admin/matatus", methods=["POST"])
+@admin_required
+@csrf_required
+def create_admin_matatu():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON request is required."
+        }), 400
+
+    registration_number = data.get("registration_number")
+    route_id = data.get("route_id")
+
+    if not isinstance(registration_number, str):
+        return jsonify({
+            "success": False,
+            "message": "Registration number is required."
+        }), 400
+
+    registration_number = registration_number.strip()
+
+    if not registration_number:
+        return jsonify({
+            "success": False,
+            "message": "Registration number cannot be empty."
+        }), 400
+
+    if (
+        isinstance(route_id, bool)
+        or not isinstance(route_id, int)
+        or route_id <= 0
+    ):
+        return jsonify({
+            "success": False,
+            "message": "A valid route ID is required."
+        }), 400
+
+    normalized_registration = registration_number.upper()
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        # Registration numbers remain reserved permanently.
+        existing_registration = connection.execute("""
+            SELECT id
+            FROM matatu_registration_registry
+            WHERE normalized_registration_number = ?
+        """, (normalized_registration,)).fetchone()
+
+        if existing_registration:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "This registration number has already been used."
+            }), 409
+
+        # New matatus must use an active route.
+        route = connection.execute("""
+            SELECT id, name
+            FROM routes
+            WHERE id = ?
+              AND is_active = 1
+        """, (route_id,)).fetchone()
+
+        if route is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Selected route does not exist or is inactive."
+            }), 400
+
+        # Create the matatu and preserve legacy route_name.
+        cursor = connection.execute("""
+            INSERT INTO matatus (
+                registration_number,
+                route_name,
+                route_id
+            )
+            VALUES (?, ?, ?)
+        """, (
+            registration_number,
+            route["name"],
+            route["id"]
+        ))
+
+        matatu_id = cursor.lastrowid
+
+        # Permanently reserve the registration number.
+        connection.execute("""
+            INSERT INTO matatu_registration_registry (
+                normalized_registration_number,
+                registration_number,
+                original_matatu_id
+            )
+            VALUES (?, ?, ?)
+        """, (
+            normalized_registration,
+            registration_number,
+            matatu_id
+        ))
+
+        # Create the initial registration-history entry using the
+        # exact timestamp recorded in the permanent registration registry.
+        history_cursor = connection.execute("""
+            INSERT INTO matatu_registration_history (
+                matatu_id,
+                registration_number,
+                normalized_registration_number,
+                effective_start
+            )
+            SELECT ?, ?, ?, registered_at
+            FROM matatu_registration_registry
+            WHERE normalized_registration_number = ?
+        """, (
+            matatu_id,
+            registration_number,
+            normalized_registration,
+            normalized_registration
+        ))
+
+        if history_cursor.rowcount != 1:
+            raise sqlite3.IntegrityError(
+                "Initial registration history could not be created."
+            )
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Matatu registered successfully.",
+            "matatu": {
+                "id": matatu_id,
+                "registration_number": registration_number,
+                "route_id": route["id"],
+                "route_name": route["name"],
+                "is_archived": False,
+                "archived_at": None
+            }
+        }), 201
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        # A genuine registration conflict returns 409.
+        existing_registration = connection.execute("""
+            SELECT id
+            FROM matatu_registration_registry
+            WHERE normalized_registration_number = ?
+        """, (normalized_registration,)).fetchone()
+
+        if existing_registration:
+            return jsonify({
+                "success": False,
+                "message": "This registration number has already been used."
+            }), 409
+
+        # Unexpected integrity failures return 500.
+        app.logger.exception(
+            "Database constraint prevented matatu registration."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to register matatu."
+        }), 500
+
+    except sqlite3.Error:
+        connection.rollback()
+
+        app.logger.exception("Failed to register matatu.")
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to register matatu."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+
+@app.route("/api/admin/matatus/<int:matatu_id>", methods=["PUT"])
+@admin_required
+@csrf_required
+def update_admin_matatu(matatu_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "A valid JSON request is required."
+        }), 400
+
+    allowed_fields = {"registration_number", "route_id"}
+
+    if not data or not set(data).issubset(allowed_fields):
+        return jsonify({
+            "success": False,
+            "message": "Provide at least one valid editable field."
+        }), 400
+
+    registration_number = None
+    normalized_registration = None
+
+    if "registration_number" in data:
+        registration_number = data["registration_number"]
+
+        if not isinstance(registration_number, str):
+            return jsonify({
+                "success": False,
+                "message": "Registration number must be text."
+            }), 400
+
+        registration_number = registration_number.strip()
+
+        if not registration_number:
+            return jsonify({
+                "success": False,
+                "message": "Registration number cannot be empty."
+            }), 400
+
+        normalized_registration = registration_number.upper()
+
+    route_id = data.get("route_id")
+
+    if "route_id" in data and (
+        isinstance(route_id, bool)
+        or not isinstance(route_id, int)
+        or route_id <= 0
+    ):
+        return jsonify({
+            "success": False,
+            "message": "A valid route ID is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        matatu = connection.execute("""
+            SELECT
+                id,
+                registration_number,
+                route_id,
+                route_name,
+                is_archived,
+                archived_at
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Matatu not found."
+            }), 404
+
+        if matatu["is_archived"]:
+            connection.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": "Archived matatus cannot be edited."
+            }), 409
+
+        final_registration = matatu["registration_number"]
+        registration_changed = False
+
+        if normalized_registration is not None:
+            current_normalized = matatu["registration_number"].strip().upper()
+
+            if normalized_registration != current_normalized:
+                existing_registration = connection.execute("""
+                    SELECT id
+                    FROM matatu_registration_registry
+                    WHERE normalized_registration_number = ?
+                """, (normalized_registration,)).fetchone()
+
+                if existing_registration:
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            "This registration number has already been used."
+                        )
+                    }), 409
+
+                registration_changed = True
+                final_registration = registration_number
+
+        final_route_id = matatu["route_id"]
+        final_route_name = matatu["route_name"]
+
+        if "route_id" in data:
+            route = connection.execute("""
+                SELECT id, name
+                FROM routes
+                WHERE id = ?
+                  AND is_active = 1
+            """, (route_id,)).fetchone()
+
+            if route is None:
+                connection.rollback()
+
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Selected route does not exist or is inactive."
+                    )
+                }), 400
+
+            final_route_id = route["id"]
+            final_route_name = route["name"]
+
+        if registration_changed:
+            # Close the current registration-history interval.
+            history_update = connection.execute("""
+                UPDATE matatu_registration_history
+                SET effective_end = CURRENT_TIMESTAMP
+                WHERE matatu_id = ?
+                  AND effective_end IS NULL
+            """, (matatu_id,))
+
+            if history_update.rowcount != 1:
+                raise sqlite3.IntegrityError(
+                    "Expected exactly one current registration-history entry."
+                )
+
+            # Permanently reserve the new registration number.
+            registry_cursor = connection.execute("""
+                INSERT INTO matatu_registration_registry (
+                    normalized_registration_number,
+                    registration_number,
+                    original_matatu_id
+                )
+                VALUES (?, ?, ?)
+            """, (
+                normalized_registration,
+                final_registration,
+                matatu_id
+            ))
+
+            if registry_cursor.rowcount != 1:
+                raise sqlite3.IntegrityError(
+                    "New registration reservation could not be created."
+                )
+
+            # Start the new history interval using the registry timestamp.
+            history_cursor = connection.execute("""
+                INSERT INTO matatu_registration_history (
+                    matatu_id,
+                    registration_number,
+                    normalized_registration_number,
+                    effective_start
+                )
+                SELECT ?, ?, ?, registered_at
+                FROM matatu_registration_registry
+                WHERE normalized_registration_number = ?
+                  AND original_matatu_id = ?
+                  AND permanently_deleted_at IS NULL
+            """, (
+                matatu_id,
+                final_registration,
+                normalized_registration,
+                normalized_registration,
+                matatu_id
+            ))
+
+            if history_cursor.rowcount != 1:
+                raise sqlite3.IntegrityError(
+                    "New registration history could not be created."
+                )
+
+        # Update the Matatu while keeping legacy route_name synchronized.
+        connection.execute("""
+            UPDATE matatus
+            SET registration_number = ?,
+                route_id = ?,
+                route_name = ?
+            WHERE id = ?
+        """, (
+            final_registration,
+            final_route_id,
+            final_route_name,
+            matatu_id
+        ))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Matatu updated successfully.",
+            "matatu": {
+                "id": matatu_id,
+                "registration_number": final_registration,
+                "route_id": final_route_id,
+                "route_name": final_route_name,
+                "is_archived": False,
+                "archived_at": matatu["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.IntegrityError:
+        connection.rollback()
+
+        app.logger.exception(
+            "Database constraint prevented matatu update."
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to update matatu."
+        }), 500
+
+    except sqlite3.Error:
+        connection.rollback()
+
+        app.logger.exception("Failed to update matatu.")
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to update matatu."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route(
+    "/api/admin/matatus/<int:matatu_id>/archive",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def archive_admin_matatu(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        matatu = connection.execute("""
+            SELECT id, registration_number, route_id, route_name,
+                   is_archived, archived_at
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Matatu not found."
+            }), 404
+
+        if matatu["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Matatu is already archived."
+            }), 409
+
+        # End active conductor assignments in the same transaction.
+        connection.execute("""
+            UPDATE matatu_assignments
+            SET ended_at = CURRENT_TIMESTAMP
+            WHERE matatu_id = ?
+              AND ended_at IS NULL
+        """, (matatu_id,))
+
+        connection.execute("""
+            UPDATE matatus
+            SET is_archived = 1,
+                archived_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND is_archived = 0
+        """, (matatu_id,))
+
+        archived_matatu = connection.execute("""
+            SELECT id, registration_number, route_id, route_name,
+                   is_archived, archived_at
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Matatu archived successfully.",
+            "matatu": {
+                "id": archived_matatu["id"],
+                "registration_number": archived_matatu["registration_number"],
+                "route_id": archived_matatu["route_id"],
+                "route_name": archived_matatu["route_name"],
+                "is_archived": bool(archived_matatu["is_archived"]),
+                "archived_at": archived_matatu["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to archive Matatu %s.", matatu_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to archive Matatu."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/matatus/<int:matatu_id>/restore",
+    methods=["POST"]
+)
+@admin_required
+@csrf_required
+def restore_admin_matatu(matatu_id):
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        matatu = connection.execute("""
+            SELECT id, registration_number, route_id, route_name,
+                   is_archived, archived_at
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Matatu not found."
+            }), 404
+
+        if not matatu["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Matatu is not archived."
+            }), 409
+
+        route = connection.execute("""
+            SELECT id, is_active
+            FROM routes
+            WHERE id = ?
+        """, (matatu["route_id"],)).fetchone()
+
+        if route is None or route["is_active"] != 1:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": (
+                    "The matatu cannot be restored because its "
+                    "assigned route is inactive or unavailable."
+                )
+            }), 409
+
+        connection.execute("""
+            UPDATE matatus
+            SET is_archived = 0,
+                archived_at = NULL
+            WHERE id = ?
+              AND is_archived = 1
+        """, (matatu_id,))
+
+        restored_matatu = connection.execute("""
+            SELECT id, registration_number, route_id, route_name,
+                   is_archived, archived_at
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Matatu restored successfully.",
+            "matatu": {
+                "id": restored_matatu["id"],
+                "registration_number": restored_matatu["registration_number"],
+                "route_id": restored_matatu["route_id"],
+                "route_name": restored_matatu["route_name"],
+                "is_archived": bool(restored_matatu["is_archived"]),
+                "archived_at": restored_matatu["archived_at"]
+            }
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to restore Matatu %s.", matatu_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to restore Matatu."
+        }), 500
+
+    finally:
+        connection.close()
+
+
+@app.route(
+    "/api/admin/matatus/<int:matatu_id>",
+    methods=["DELETE"]
+)
+@admin_required
+@csrf_required
+def permanently_delete_admin_matatu(matatu_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or data.get("confirm") is not True:
+        return jsonify({
+            "success": False,
+            "message": "Explicit confirmation is required."
+        }), 400
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+
+        matatu = connection.execute("""
+            SELECT id, registration_number, is_archived
+            FROM matatus
+            WHERE id = ?
+        """, (matatu_id,)).fetchone()
+
+        if matatu is None:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Matatu not found."
+            }), 404
+
+        if not matatu["is_archived"]:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "Only archived Matatus can be permanently deleted."
+            }), 409
+
+        registration_number = matatu["registration_number"]
+
+        # Capture journey and passenger identities before deleting journeys.
+        journeys = connection.execute("""
+            SELECT id, passenger_id
+            FROM passenger_destinations
+            WHERE matatu_id = ?
+        """, (matatu_id,)).fetchall()
+
+        journey_ids = [row["id"] for row in journeys]
+        passenger_ids = sorted({
+            row["passenger_id"]
+            for row in journeys
+            if row["passenger_id"] is not None
+        })
+
+        # Temporary tables avoid SQLite parameter-count limits.
+        connection.execute("""
+            CREATE TEMP TABLE target_matatu_journeys (
+                id INTEGER PRIMARY KEY
+            )
+        """)
+
+        connection.execute("""
+            CREATE TEMP TABLE target_matatu_passengers (
+                id INTEGER PRIMARY KEY
+            )
+        """)
+
+        connection.executemany(
+            "INSERT OR IGNORE INTO target_matatu_journeys (id) VALUES (?)",
+            [(journey_id,) for journey_id in journey_ids]
+        )
+
+        connection.executemany(
+            "INSERT OR IGNORE INTO target_matatu_passengers (id) VALUES (?)",
+            [(passenger_id,) for passenger_id in passenger_ids]
+        )
+
+        # Preserve payment history without passenger or conductor identifiers.
+        connection.execute("""
+            INSERT INTO matatu_payment_audit_archive (
+                registration_number,
+                source_record_id,
+                amount,
+                status,
+                created_at,
+                paid_at,
+                confirmed_at,
+                conductor_attribution_present
+            )
+            SELECT
+                ?,
+                pb.id,
+                pb.amount,
+                pb.status,
+                pb.created_at,
+                pb.paid_at,
+                pb.confirmed_at,
+                CASE
+                    WHEN pb.paid_by_conductor_id IS NOT NULL THEN 1
+                    ELSE 0
+                END
+            FROM passenger_balances AS pb
+            WHERE pb.matatu_id = ?
+               OR pb.passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (registration_number, matatu_id))
+
+        # Preserve emergency history without private identifiers or messages.
+        connection.execute("""
+            INSERT INTO matatu_emergency_audit_archive (
+                registration_number,
+                source_record_id,
+                alert_type,
+                status,
+                created_at,
+                acknowledged_at,
+                conductor_attribution_present
+            )
+            SELECT
+                ?,
+                ea.id,
+                ea.alert_type,
+                ea.status,
+                ea.created_at,
+                ea.acknowledged_at,
+                CASE
+                    WHEN ea.acknowledged_by_conductor_id IS NOT NULL THEN 1
+                    ELSE 0
+                END
+            FROM emergency_alerts AS ea
+            WHERE ea.matatu_id = ?
+               OR ea.passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (registration_number, matatu_id))
+
+        # Remove notifications before their associated operational records.
+        connection.execute("""
+            DELETE FROM passenger_notifications
+            WHERE matatu_id = ?
+               OR passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (matatu_id,))
+
+        # Remove requests before deleting their referenced journeys.
+        connection.execute("""
+            DELETE FROM destination_change_requests
+            WHERE matatu_id = ?
+               OR passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (matatu_id,))
+
+        connection.execute("""
+            DELETE FROM emergency_alerts
+            WHERE matatu_id = ?
+               OR passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (matatu_id,))
+
+        connection.execute("""
+            DELETE FROM passenger_balances
+            WHERE matatu_id = ?
+               OR passenger_destination_id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (matatu_id,))
+
+        assignment_count = connection.execute("""
+            SELECT COUNT(*)
+            FROM matatu_assignments
+            WHERE matatu_id = ?
+        """, (matatu_id,)).fetchone()[0]
+
+        archive_cursor = connection.execute("""
+            INSERT INTO matatu_assignment_audit_archive (
+                source_assignment_id,
+                conductor_id,
+                conductor_name,
+                registration_number,
+                assigned_at,
+                ended_at
+            )
+            SELECT
+                ma.id,
+                ma.conductor_id,
+                c.full_name,
+                ?,
+                ma.assigned_at,
+                ma.ended_at
+            FROM matatu_assignments AS ma
+            JOIN conductors AS c
+                ON c.id = ma.conductor_id
+            WHERE ma.matatu_id = ?
+        """, (
+            matatu["registration_number"],
+            matatu_id,
+        ))
+
+        if archive_cursor.rowcount != assignment_count:
+            raise sqlite3.IntegrityError(
+                "Not all matatu assignments could be archived."
+            )
+
+        verified_archive_count = connection.execute("""
+            SELECT COUNT(*)
+            FROM matatu_assignments AS ma
+            JOIN conductors AS c
+                ON c.id = ma.conductor_id
+            JOIN matatu_assignment_audit_archive AS aa
+                ON aa.source_assignment_id = ma.id
+            WHERE ma.matatu_id = ?
+              AND aa.conductor_id = ma.conductor_id
+              AND aa.conductor_name = c.full_name
+              AND aa.registration_number = ?
+              AND aa.assigned_at = ma.assigned_at
+              AND aa.ended_at IS ma.ended_at
+        """, (
+            matatu_id,
+            matatu["registration_number"],
+        )).fetchone()[0]
+
+        if verified_archive_count != assignment_count:
+            raise sqlite3.IntegrityError(
+                "Matatu assignment archive verification failed."
+            )
+
+        connection.execute("""
+            DELETE FROM matatu_assignments
+            WHERE matatu_id = ?
+        """, (matatu_id,))
+
+        connection.execute("""
+            DELETE FROM matatu_locations
+            WHERE matatu_id = ?
+        """, (matatu_id,))
+
+        connection.execute("""
+            DELETE FROM passenger_destinations
+            WHERE matatu_id = ?
+               OR id IN (
+                    SELECT id FROM target_matatu_journeys
+               )
+        """, (matatu_id,))
+
+        # Delete passenger identities only when no journeys still reference them.
+        connection.execute("""
+            DELETE FROM passengers
+            WHERE id IN (
+                SELECT id FROM target_matatu_passengers
+            )
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM passenger_destinations AS remaining
+                  WHERE remaining.passenger_id = passengers.id
+              )
+        """)
+
+        # Registration reservations remain permanently recorded.
+        connection.execute("""
+            UPDATE matatu_registration_registry
+            SET permanently_deleted_at = CURRENT_TIMESTAMP
+            WHERE original_matatu_id = ?
+        """, (matatu_id,))
+
+        # Registration history intentionally survives permanent deletion.
+        connection.execute("""
+            DELETE FROM matatus
+            WHERE id = ?
+        """, (matatu_id,))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Matatu permanently deleted.",
+            "matatu_id": matatu_id,
+            "registration_number": registration_number
+        }), 200
+
+    except sqlite3.Error:
+        connection.rollback()
+        app.logger.exception(
+            "Failed to permanently delete Matatu %s.", matatu_id
+        )
+        return jsonify({
+            "success": False,
+            "message": "Unable to permanently delete Matatu."
+        }), 500
+
+    finally:
+        connection.close()
+
 @app.route("/api/admin/matatus", methods=["GET"])
 @admin_required
 def get_admin_matatus():
@@ -1862,7 +2812,13 @@ def get_admin_matatus():
 
     try:
         matatus = connection.execute("""
-            SELECT id, registration_number, route_name
+            SELECT
+                id,
+                registration_number,
+                route_id,
+                route_name,
+                is_archived,
+                archived_at
             FROM matatus
             ORDER BY registration_number ASC
         """).fetchall()
@@ -1873,7 +2829,10 @@ def get_admin_matatus():
                 {
                     "id": matatu["id"],
                     "registration_number": matatu["registration_number"],
-                    "route_name": matatu["route_name"]
+                    "route_id": matatu["route_id"],
+                    "route_name": matatu["route_name"],
+                    "is_archived": matatu["is_archived"],
+                    "archived_at": matatu["archived_at"]
                 }
                 for matatu in matatus
             ]
@@ -1898,10 +2857,11 @@ def get_available_matatus():
         matatus = connection.execute(
             """
             SELECT
-                    m.id,
-                    m.registration_number,
-                    m.route_name
+                m.id,
+                m.registration_number,
+                m.route_name
             FROM matatus m
+            WHERE m.is_archived = 0
             ORDER BY m.registration_number ASC
             """
         ).fetchall()
@@ -1930,6 +2890,7 @@ def get_available_matatus():
 
     finally:
         connection.close()
+
 
 
 
@@ -2078,7 +3039,7 @@ def create_conductor():
                 ):
                     return jsonify({
                         "success": False,
-                        "message": "The passport photo must be at least 200 × 200 pixels."
+                        "message": "The passport photo must be at least 200 x 200 pixels."
                     }), 400
 
                 if (
@@ -2145,12 +3106,13 @@ def create_conductor():
         # Begin an atomic database operation.
         connection.execute("BEGIN IMMEDIATE")
 
-        # Confirm the selected matatu exists.
+        # Confirm the selected matatu exists and is not archived.
         matatu = connection.execute(
             """
             SELECT id
             FROM matatus
             WHERE id = ?
+              AND is_archived = 0
             """,
             (matatu_id,)
         ).fetchone()
@@ -2161,7 +3123,7 @@ def create_conductor():
 
             return jsonify({
                 "success": False,
-                "message": "Selected matatu does not exist."
+                "message": "Selected matatu does not exist or is archived."
             }), 404
 
         # Create the conductor account.

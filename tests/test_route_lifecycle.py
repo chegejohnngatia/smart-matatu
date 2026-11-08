@@ -45,6 +45,22 @@ class TestRouteLifecycle(unittest.TestCase):
         connection.execute("PRAGMA foreign_keys = ON")
 
         connection.executescript("""
+            CREATE TABLE admins (
+                id INTEGER PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            INSERT INTO admins (
+                id, full_name, email, password_hash, is_active
+            )
+            VALUES (
+                1, 'Test Admin', 'admin@test.com', 'test-hash', 1
+            );
+
             CREATE TABLE routes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
@@ -224,6 +240,68 @@ class TestRouteLifecycle(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_deactivated_admin_session_returns_401_and_clears_session(self):
+        self.login_as_admin()
+
+        connection = self.get_test_connection()
+        connection.execute(
+            "UPDATE admins SET is_active = 0 WHERE id = 1"
+        )
+        connection.commit()
+        connection.close()
+
+        response = self.delete_route(
+            csrf_token=self.csrf_token
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+        with self.client.session_transaction() as session:
+            self.assertNotIn("user_id", session)
+
+    def test_deleted_admin_session_returns_401_and_clears_session(self):
+        self.login_as_admin()
+
+        connection = self.get_test_connection()
+        connection.execute(
+            "DELETE FROM admins WHERE id = 1"
+        )
+        connection.commit()
+        connection.close()
+
+        response = self.delete_route(
+            csrf_token=self.csrf_token
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+        with self.client.session_transaction() as session:
+            self.assertNotIn("user_id", session)
+
+    def test_admin_database_validation_failure_returns_500(self):
+        self.login_as_admin()
+
+        with patch.object(
+            smart_matatu_app,
+            "get_db_connection",
+            side_effect=sqlite3.OperationalError(
+                "Simulated database failure"
+            )
+        ):
+            response = self.delete_route(
+                csrf_token=self.csrf_token
+            )
+
+        self.assertEqual(response.status_code, 500)
+
+        connection = self.get_test_connection()
+        route = connection.execute(
+            "SELECT id FROM routes WHERE id = 1"
+        ).fetchone()
+        connection.close()
+
+        self.assertIsNotNone(route)
 
     def test_missing_csrf_token_returns_403(self):
         self.login_as_admin()

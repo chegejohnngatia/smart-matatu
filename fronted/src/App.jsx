@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Landing from './components/Landing'
 import AdminLayout from './components/admin/AdminLayout'
-import ResourcePage from './pages/admin/ResourcePage'
+import MatatuManagement from './pages/admin/MatatuManagement'
 import RouteManagement from './pages/admin/RouteManagement'
 import ConductorManagement from './pages/admin/ConductorManagement'
 import ConductorEmergencyAlerts from './pages/conductor/ConductorEmergencyAlerts'
@@ -56,7 +56,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="create-user" replace />} />
-        <Route path="matatus" element={<ResourcePage />} />
+        <Route path="matatus" element={<MatatuManagement />} />
         <Route path="routes" element={<RouteManagement />} />
         <Route path="users" element={<ConductorManagement />} />
         <Route path="create-user" element={<CreateUser />} />
