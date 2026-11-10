@@ -31,6 +31,37 @@ async function request(path, options = {}) {
 
 export const api = {
   listMatatus: () => request("/matatus"),
+  getAdminMatatus: () => request("/admin/matatus"),
+  getAdminRoutes: () => request("/admin/routes"),
+  getAdminTrips: () => request("/admin/trips"),
+  getAdminMatatuQr: (matatuId) => request(`/admin/matatus/${matatuId}/qr`),
+  getAdminDashboard: async () => {
+    const data = await request("/admin/dashboard");
+    return {
+      ...data,
+      stats: {
+        matatus: data.stats.matatus,
+        activeTrips: data.stats.active_trips,
+        availableVehicles: data.stats.available_vehicles,
+        maintenanceVehicles: data.stats.maintenance_vehicles,
+        users: data.stats.users,
+      },
+      matatus: data.matatus.map((matatu) => ({
+        ...matatu,
+        passengerCount: matatu.passenger_count,
+      })),
+      routes: data.routes.map((route) => ({
+        ...route,
+        stageCount: route.stage_count,
+        vehicleCount: route.vehicle_count,
+      })),
+      trips: data.trips.map((trip) => ({
+        ...trip,
+        matatuId: trip.matatu_id,
+        passengerCount: trip.passenger_count,
+      })),
+    };
+  },
   getPassengerTrip: (matatuId) =>
     request(`/passenger/trip-info?matatu_id=${matatuId}`),
   getPassengerHistory: (matatuId) =>

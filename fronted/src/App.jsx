@@ -1,33 +1,33 @@
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
-import Landing from './components/Landing'
-import AdminLayout from './components/admin/AdminLayout'
-import Dashboard from './pages/admin/Dashboard'
-import ResourcePage from './pages/admin/ResourcePage'
-import AdminDashboard from './components/AdminDashboard'
-import ConductorLayout from './components/conductor/ConductorLayout'
-import ConductorDashboard from './pages/conductor/ConductorDashboard'
-import ConductorSectionPage from './pages/conductor/ConductorSectionPage'
+import Landing from "./components/Landing";
+import AdminLayout from "./components/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import ResourcePage from "./pages/admin/ResourcePage";
+import AdminDashboard from "./components/AdminDashboard";
+import ConductorLayout from "./components/conductor/ConductorLayout";
+import ConductorDashboard from "./pages/conductor/ConductorDashboard";
+import ConductorSectionPage from "./pages/conductor/ConductorSectionPage";
 
-import Passenger from './pages/Passenger'
+import Passenger from "./pages/Passenger";
 
-import { AuthProvider, useAuth } from './context/AuthContext'
-import ProtectedRoute from './components/auth/ProtectedRoute'
-import Login from './pages/auth/Login'
-import CreateUser from './pages/admin/CreateUser'
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Login from "./pages/auth/Login";
+import CreateUser from "./pages/admin/CreateUser";
 
 function RoleHome() {
-  const { currentUser } = useAuth()
+  const { currentUser } = useAuth();
 
-  if (currentUser?.role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />
+  if (currentUser?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
-  if (currentUser?.role === 'conductor') {
-    return <Navigate to="/conductor" replace />
+  if (currentUser?.role === "conductor") {
+    return <Navigate to="/conductor" replace />;
   }
 
-  return <Navigate to="/login" replace />
+  return <Navigate to="/login" replace />;
 }
 
 function AppRoutes() {
@@ -43,12 +43,12 @@ function AppRoutes() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route index element={<Navigate to="/admin-prototype" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="matatus" element={<ResourcePage />} />
         <Route path="routes" element={<ResourcePage />} />
@@ -61,7 +61,7 @@ function AppRoutes() {
       <Route
         path="/admin-prototype"
         element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />
           </ProtectedRoute>
         }
@@ -70,7 +70,7 @@ function AppRoutes() {
       <Route
         path="/conductor"
         element={
-          <ProtectedRoute allowedRoles={['conductor']}>
+          <ProtectedRoute allowedRoles={["conductor"]}>
             <ConductorLayout />
           </ProtectedRoute>
         }
@@ -83,7 +83,7 @@ function AppRoutes() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
 export default function App() {
@@ -91,5 +91,5 @@ export default function App() {
     <AuthProvider>
       <AppRoutes />
     </AuthProvider>
-  )
+  );
 }
