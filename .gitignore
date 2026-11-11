@@ -11,3 +11,8 @@ __pycache__/
 .idea/
 
 instance/
+
+# Project documentation
+/AGENTS.md
+/INTEGRATION.md
+/Smart-Matatu-Developer-Overview.md
