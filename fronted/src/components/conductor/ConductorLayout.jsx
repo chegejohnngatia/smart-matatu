@@ -38,11 +38,11 @@ export default function ConductorLayout() {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <Bus size={22} />
           </div>
           <div>
-            <p className="text-lg font-bold">Matatu <span className="text-emerald-400">Smart</span></p>
+            <p className="text-lg font-bold">Matatu <span className="text-teal-300">Smart</span></p>
             <p className="text-xs text-slate-400">Conductor workspace</p>
           </div>
           <button
@@ -68,7 +68,7 @@ export default function ConductorLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                   isActive
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-primary text-primary-content'
                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`
               }
@@ -83,7 +83,7 @@ export default function ConductorLayout() {
         <div className="mt-auto p-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <ShieldCheck size={18} className="text-emerald-400" />
+              <ShieldCheck size={18} className="text-teal-300" />
               Conductor access
             </div>
             <p className="text-xs leading-5 text-slate-400">
@@ -127,7 +127,7 @@ export default function ConductorLayout() {
             >
               <Bell size={19} />
             </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
               C
             </div>
             <div className="hidden sm:block">

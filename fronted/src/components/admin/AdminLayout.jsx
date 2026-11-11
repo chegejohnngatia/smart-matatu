@@ -53,12 +53,12 @@ export default function AdminLayout() {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <Bus size={23} />
           </div>
           <div>
             <p className="text-lg font-bold">
-              Matatu <span className="text-blue-400">Smart</span>
+              Matatu <span className="text-teal-300">Smart</span>
             </p>
             <p className="text-xs text-slate-400">Management portal</p>
           </div>
@@ -78,7 +78,7 @@ export default function AdminLayout() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                      ? 'bg-primary text-primary-content shadow-sm'
                       : 'text-slate-300 hover:bg-white/10 hover:text-white'
                   }`
                 }
@@ -94,7 +94,7 @@ export default function AdminLayout() {
         <div className="mt-auto p-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <ShieldCheck size={18} className="text-emerald-400" />
+              <ShieldCheck size={18} className="text-teal-300" />
               Admin access
             </div>
             <p className="text-xs leading-5 text-slate-400">
@@ -139,9 +139,9 @@ export default function AdminLayout() {
               className="relative rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50"
             >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
             </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
               A
             </div>
             <div className="hidden sm:block">

@@ -231,7 +231,7 @@ export default function ResourcePage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wide text-blue-600">
+        <p className="text-sm font-medium uppercase tracking-wide text-primary">
           Administration
         </p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -242,7 +242,7 @@ export default function ResourcePage() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Icon size={24} />
           </div>
           <div>

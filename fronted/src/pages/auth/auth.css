@@ -12,9 +12,7 @@
   justify-content: space-between;
   padding: 44px clamp(28px, 6vw, 88px);
   color: #fff;
-  background:
-    radial-gradient(ellipse at 15% 80%, #1e40af 0, transparent 48%),
-    linear-gradient(145deg, #020617, #0f172a 65%, #172554);
+  background: #1f2937;
 }
 
 .auth-brand {
@@ -35,7 +33,7 @@
   height: 48px;
   border-radius: 14px;
   color: #fff;
-  background: #2563eb;
+  background: var(--color-primary);
 }
 
 .auth-brand-content {
@@ -44,14 +42,14 @@
 }
 
 .auth-eyebrow {
-  color: #2563eb;
+  color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.14em;
 }
 
 .auth-brand-content .auth-eyebrow {
-  color: #93c5fd;
+  color: #99f6e4;
 }
 
 .auth-brand-content h1 {
@@ -74,7 +72,7 @@
   align-items: center;
   gap: 12px;
   margin-top: 32px;
-  color: #dbeafe;
+  color: #99f6e4;
 }
 
 .auth-footer {
@@ -135,8 +133,8 @@
 
 .auth-form input:focus,
 .auth-form select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
 }
 
 .auth-password-field {
@@ -166,7 +164,7 @@
   margin-top: 16px;
   border: 0;
   border-radius: 10px;
-  background: #2563eb;
+  background: var(--color-primary);
   color: #fff;
   font: inherit;
   font-weight: 750;
@@ -175,7 +173,7 @@
 }
 
 .auth-submit:hover {
-  background: #1d4ed8;
+  background: var(--color-primary);
 }
 
 .auth-submit:active {
@@ -217,7 +215,7 @@
 .auth-back-link {
   display: inline-block;
   margin-top: 24px;
-  color: #1d4ed8;
+  color: var(--color-primary);
   font-size: 0.9rem;
   font-weight: 650;
   text-decoration: none;

@@ -8,6 +8,8 @@ import qrcode
 import io
 import base64
 import os
+import ipaddress
+from urllib.parse import urlsplit, urlunsplit
 
 FRONTEND_DIST = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -30,7 +32,7 @@ FRONTEND_ORIGINS = {
     ).split(",")
     if origin.strip()
 }
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
 LOCATION_SOURCE = os.getenv("LOCATION_SOURCE", "simulation").strip().lower()
 CONDUCTOR_LOCATION_TOKEN = os.getenv("CONDUCTOR_LOCATION_TOKEN", "").strip()
 
@@ -38,12 +40,65 @@ CONDUCTOR_LOCATION_TOKEN = os.getenv("CONDUCTOR_LOCATION_TOKEN", "").strip()
 @app.after_request
 def add_api_cors_headers(response):
     origin = request.headers.get("Origin")
-    if request.path.startswith("/api/") and origin in FRONTEND_ORIGINS:
+    if request.path.startswith("/api/") and is_allowed_frontend_origin(origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response.headers["Vary"] = "Origin"
     return response
+
+
+def is_loopback_host(host):
+    if not host:
+        return True
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def is_allowed_frontend_origin(origin):
+    if not origin:
+        return False
+    if origin in FRONTEND_ORIGINS:
+        return True
+    origin_parts = urlsplit(origin)
+    request_parts = urlsplit(f"//{request.host}")
+    return (
+        origin_parts.scheme == "http"
+        and origin_parts.port == 5173
+        and origin_parts.hostname
+        and origin_parts.hostname == request_parts.hostname
+    )
+
+
+def passenger_frontend_url():
+    configured_url = FRONTEND_URL
+    if configured_url:
+        configured_parts = urlsplit(configured_url)
+        if not is_loopback_host(configured_parts.hostname):
+            return configured_url
+
+    origin = request.headers.get("Origin")
+    if origin and is_allowed_frontend_origin(origin):
+        origin_parts = urlsplit(origin)
+        if not is_loopback_host(origin_parts.hostname):
+            return origin.rstrip("/")
+        if configured_url:
+            configured_parts = urlsplit(configured_url)
+            if configured_parts.port:
+                netloc = f"{get_local_ip()}:{configured_parts.port}"
+                return urlunsplit((configured_parts.scheme, netloc, "", "", ""))
+        return f"{origin_parts.scheme}://{get_local_ip()}:{origin_parts.port or 5173}"
+
+    if configured_url:
+        configured_parts = urlsplit(configured_url)
+        if configured_parts.port:
+            netloc = f"{get_local_ip()}:{configured_parts.port}"
+            return urlunsplit((configured_parts.scheme, netloc, "", "", ""))
+    return f"http://{get_local_ip()}:5173"
 
 
 @app.errorhandler(404)
@@ -103,6 +158,213 @@ def api_matatus():
     return jsonify([row_to_dict(matatu) for matatu in matatus])
 
 
+def admin_matatus_payload(connection):
+    matatus = connection.execute(
+        "SELECT id, registration_number, route_name FROM matatus ORDER BY id"
+    ).fetchall()
+    locations = {
+        location["matatu_id"]: location
+        for location in connection.execute("SELECT * FROM matatu_locations")
+    }
+    passenger_counts = {
+        row["matatu_id"]: row["count"]
+        for row in connection.execute(
+            """
+            SELECT matatu_id, COUNT(*) AS count
+            FROM passenger_destinations
+            GROUP BY matatu_id
+            """
+        )
+    }
+    return [
+        {
+            "id": matatu["id"],
+            "registration": matatu["registration_number"],
+            "route": matatu["route_name"],
+            "passenger_count": passenger_counts.get(matatu["id"], 0),
+            "status": (
+                "On trip"
+                if matatu["id"] in locations and locations[matatu["id"]]["speed"] > 0
+                else "Stopped"
+                if matatu["id"] in locations
+                else "Not initialized"
+            ),
+            "location": location_payload(locations[matatu["id"]])
+            if matatu["id"] in locations
+            else None,
+        }
+        for matatu in matatus
+    ]
+
+
+def admin_routes_payload(connection):
+    routes = connection.execute(
+        """
+        SELECT route_name, COUNT(*) AS stage_count
+        FROM stages
+        GROUP BY route_name
+        ORDER BY route_name
+        """
+    ).fetchall()
+    vehicle_counts = {
+        row["route_name"]: row["count"]
+        for row in connection.execute(
+            """
+            SELECT route_name, COUNT(*) AS count
+            FROM matatus
+            GROUP BY route_name
+            """
+        )
+    }
+    result = []
+    for route in routes:
+        stages = connection.execute(
+            """
+            SELECT id, name, latitude, longitude, sequence_number
+            FROM stages
+            WHERE route_name = ?
+            ORDER BY sequence_number
+            """,
+            (route["route_name"],),
+        ).fetchall()
+        first_stage = stages[0] if stages else None
+        last_stage = stages[-1] if stages else None
+        distance_km = None
+        if (
+            first_stage
+            and last_stage
+            and first_stage["latitude"] is not None
+            and first_stage["longitude"] is not None
+            and last_stage["latitude"] is not None
+            and last_stage["longitude"] is not None
+        ):
+            distance_km = round(
+                calculate_distance(
+                    first_stage["latitude"],
+                    first_stage["longitude"],
+                    last_stage["latitude"],
+                    last_stage["longitude"],
+                )
+                / 1000,
+                1,
+            )
+        result.append(
+            {
+                "name": route["route_name"],
+                "origin": first_stage["name"] if first_stage else None,
+                "destination": last_stage["name"] if last_stage else None,
+                "distance_km": distance_km,
+                "stage_count": route["stage_count"],
+                "vehicle_count": vehicle_counts.get(route["route_name"], 0),
+                "status": "Active",
+                "stages": [row_to_dict(stage) for stage in stages],
+            }
+        )
+    return result
+
+
+def admin_trips_payload(connection):
+    trips = []
+    matatus = connection.execute(
+        "SELECT id, registration_number, route_name FROM matatus ORDER BY id"
+    ).fetchall()
+    for matatu in matatus:
+        location = connection.execute(
+            "SELECT * FROM matatu_locations WHERE matatu_id = ?",
+            (matatu["id"],),
+        ).fetchone()
+        passenger_count = connection.execute(
+            "SELECT COUNT(*) AS count FROM passenger_destinations WHERE matatu_id = ?",
+            (matatu["id"],),
+        ).fetchone()["count"]
+        status = "Scheduled"
+        if location:
+            status = "In progress" if location["speed"] > 0 else "Stopped"
+        trips.append(
+            {
+                "id": f"MATATU-{matatu['id']:03d}",
+                "matatu_id": matatu["id"],
+                "registration": matatu["registration_number"],
+                "route": matatu["route_name"],
+                "passenger_count": passenger_count,
+                "status": status,
+                "location": location_payload(location) if location else None,
+            }
+        )
+    return trips
+
+
+@app.route("/api/admin/matatus", methods=["GET"])
+def api_admin_matatus():
+    connection = get_db_connection()
+    payload = admin_matatus_payload(connection)
+    connection.close()
+    return jsonify(payload)
+
+
+@app.route("/api/admin/routes", methods=["GET"])
+def api_admin_routes():
+    connection = get_db_connection()
+    payload = admin_routes_payload(connection)
+    connection.close()
+    return jsonify(payload)
+
+
+@app.route("/api/admin/trips", methods=["GET"])
+def api_admin_trips():
+    connection = get_db_connection()
+    payload = admin_trips_payload(connection)
+    connection.close()
+    return jsonify(payload)
+
+
+@app.route("/api/admin/dashboard", methods=["GET"])
+def api_admin_dashboard():
+    connection = get_db_connection()
+    matatus = admin_matatus_payload(connection)
+    routes = admin_routes_payload(connection)
+    trips = admin_trips_payload(connection)
+    connection.close()
+    active_trips = sum(trip["status"] == "In progress" for trip in trips)
+    return jsonify({
+        "stats": {
+            "matatus": len(matatus),
+            "active_trips": active_trips,
+            "available_vehicles": sum(item["status"] == "Not initialized" for item in matatus),
+            "maintenance_vehicles": 0,
+            "users": None,
+        },
+        "matatus": matatus,
+        "routes": routes,
+        "trips": trips,
+        "alerts": [],
+    })
+
+
+@app.route("/api/admin/matatus/<int:matatu_id>/qr", methods=["GET"])
+def api_admin_matatu_qr(matatu_id):
+    connection = get_db_connection()
+    matatu = connection.execute(
+        "SELECT id, registration_number, route_name FROM matatus WHERE id = ?",
+        (matatu_id,),
+    ).fetchone()
+    connection.close()
+    if matatu is None:
+        return jsonify({"error": {"message": "Matatu not found"}}), 404
+
+    qr_url = f"{passenger_frontend_url()}/passenger/{matatu_id}"
+    image_buffer = io.BytesIO()
+    qrcode.make(qr_url).save(image_buffer, format="PNG")
+    qr_data = base64.b64encode(image_buffer.getvalue()).decode("utf-8")
+    return jsonify({
+        "matatu_id": matatu_id,
+        "registration": matatu["registration_number"],
+        "route": matatu["route_name"],
+        "qr_url": qr_url,
+        "qr_data_url": f"data:image/png;base64,{qr_data}",
+    })
+
+
 @app.route("/api/passenger/trip-info", methods=["GET"])
 def api_passenger_trip_info():
     matatu_id = request.args.get("matatu_id", type=int)
@@ -120,7 +382,7 @@ def api_passenger_trip_info():
 
     stages = connection.execute(
         """
-        SELECT id, name, sequence_number
+        SELECT id, name, latitude, longitude, sequence_number
         FROM stages
         WHERE route_name = ?
         ORDER BY sequence_number
@@ -291,7 +553,7 @@ def generate_qr(matatu_id):
     local_ip = get_local_ip()
 
     # Create passenger URL for this specific matatu
-    qr_url = f"{FRONTEND_URL}/passenger/{matatu_id}"
+    qr_url = f"{passenger_frontend_url()}/passenger/{matatu_id}"
 
     # Generate QR code
     qr = qrcode.make(qr_url)
@@ -409,6 +671,14 @@ def passenger(matatu_id):
     if matatu is None:
         connection.close()
         return "Matatu not found", 404
+
+    # Let the React SPA own passenger GET routes whenever its production build
+    # is present. Keep the server-rendered form below as a development fallback.
+    if request.method == "GET" and os.path.isfile(
+        os.path.join(FRONTEND_DIST, "index.html")
+    ):
+        connection.close()
+        return send_from_directory(FRONTEND_DIST, "index.html")
 
     stages = connection.execute(
         """
@@ -564,6 +834,7 @@ def notify_passenger(passenger_id):
     return redirect(request.referrer)
 
 
+@app.route("/api/vehicle-status/<int:matatu_id>")
 @app.route("/vehicle-status/<int:matatu_id>")
 def vehicle_status(matatu_id):
 

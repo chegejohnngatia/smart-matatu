@@ -22,13 +22,13 @@ export default function ConductorDashboard() {
     <div className="space-y-7">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm font-medium text-emerald-700">CONDUCTOR OVERVIEW</p>
+          <p className="text-sm font-medium text-primary">CONDUCTOR OVERVIEW</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Good day, Conductor</h2>
           <p className="mt-2 text-slate-500">Review your assigned trip and passenger requests.</p>
         </div>
         <Link
           to="/conductor/trip"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white shadow-sm hover:bg-emerald-700"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-primary-content shadow-sm hover:bg-primary/90"
         >
           View current trip <ArrowRight size={18} />
         </Link>
@@ -50,7 +50,7 @@ export default function ConductorDashboard() {
           <article key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">{label}</span>
-              <span className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700">
+              <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
                 <Icon size={20} />
               </span>
             </div>
@@ -67,7 +67,7 @@ export default function ConductorDashboard() {
               <h3 className="text-lg font-bold">Current assignment</h3>
               <p className="mt-1 text-sm text-slate-500">Example trip information</p>
             </div>
-            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+            <span className="rounded-full bg-base-200 px-3 py-1.5 text-xs font-semibold text-base-content/75">
               Scheduled · Demo
             </span>
           </div>
@@ -84,7 +84,7 @@ export default function ConductorDashboard() {
           </div>
 
           <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 p-4">
-            <Navigation size={20} className="mt-1 text-emerald-600" />
+            <Navigation size={20} className="mt-1 text-primary" />
             <div>
               <p className="font-semibold">Route progress</p>
               <p className="mt-1 text-sm text-slate-500">
@@ -93,7 +93,7 @@ export default function ConductorDashboard() {
             </div>
           </div>
 
-          <Link to="/conductor/trip" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+          <Link to="/conductor/trip" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
             Open trip details <ArrowRight size={16} />
           </Link>
         </article>
@@ -102,19 +102,19 @@ export default function ConductorDashboard() {
           <h3 className="text-lg font-bold">Quick actions</h3>
           <p className="mt-1 text-sm text-slate-500">Navigate to your work areas.</p>
           <div className="mt-5 space-y-3">
-            <Link to="/conductor/requests" className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 hover:border-emerald-300 hover:bg-emerald-50/50">
-              <MapPin className="text-emerald-700" size={21} />
+            <Link to="/conductor/requests" className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 hover:border-primary/50 hover:bg-primary/5">
+              <MapPin className="text-primary" size={21} />
               <span className="flex-1 text-sm font-semibold">Review destination requests</span>
               <ArrowRight size={16} />
             </Link>
-            <Link to="/conductor/history" className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 hover:border-emerald-300 hover:bg-emerald-50/50">
-              <Clock3 className="text-emerald-700" size={21} />
+            <Link to="/conductor/history" className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 hover:border-primary/50 hover:bg-primary/5">
+              <Clock3 className="text-primary" size={21} />
               <span className="flex-1 text-sm font-semibold">View trip history</span>
               <ArrowRight size={16} />
             </Link>
           </div>
           <div className="mt-5 flex items-center gap-2 text-xs text-slate-500">
-            <CheckCircle2 size={15} className="text-emerald-600" />
+            <CheckCircle2 size={15} className="text-success" />
             Interface preview only
           </div>
         </article>
@@ -126,7 +126,7 @@ export default function ConductorDashboard() {
             <h3 className="text-lg font-bold">Recent destination requests</h3>
             <p className="mt-1 text-sm text-slate-500">Illustrative passenger requests</p>
           </div>
-          <Link to="/conductor/requests" className="text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+          <Link to="/conductor/requests" className="text-sm font-semibold text-primary hover:underline">
             View all
           </Link>
         </div>
@@ -151,7 +151,7 @@ export default function ConductorDashboard() {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       request.status === 'Pending'
                         ? 'bg-amber-50 text-amber-700'
-                        : 'bg-emerald-50 text-emerald-700'
+                        : 'bg-success/10 text-success'
                     }`}>
                       {request.status}
                     </span>

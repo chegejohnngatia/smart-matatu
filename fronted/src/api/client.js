@@ -1,5 +1,6 @@
+const defaultApiBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000/api"
+  import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl
 ).replace(/\/$/, "");
 
 export class ApiError extends Error {
@@ -64,6 +65,7 @@ export const api = {
   },
   getPassengerTrip: (matatuId) =>
     request(`/passenger/trip-info?matatu_id=${matatuId}`),
+  getVehicleStatus: (matatuId) => request(`/vehicle-status/${matatuId}`),
   getPassengerHistory: (matatuId) =>
     request(`/passenger/history?matatu_id=${matatuId}`),
   registerPassenger: (matatuId, destinationStageId) =>

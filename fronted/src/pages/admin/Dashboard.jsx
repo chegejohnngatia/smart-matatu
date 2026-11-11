@@ -16,7 +16,7 @@ const stats = [
     positive: true,
     description: 'compared with last month',
     icon: Bus,
-    color: 'blue',
+    color: 'primary',
   },
   {
     title: 'Registered users',
@@ -25,7 +25,7 @@ const stats = [
     positive: true,
     description: 'compared with last month',
     icon: Users,
-    color: 'violet',
+    color: 'primary',
   },
   {
     title: 'Active routes',
@@ -34,7 +34,7 @@ const stats = [
     positive: true,
     description: 'routes added this month',
     icon: Route,
-    color: 'emerald',
+    color: 'primary',
   },
   {
     title: 'Active trips',
@@ -43,7 +43,7 @@ const stats = [
     positive: false,
     description: 'compared with yesterday',
     icon: MapPin,
-    color: 'amber',
+    color: 'primary',
   },
 ]
 
@@ -55,10 +55,7 @@ const recentTrips = [
 ]
 
 const colorClasses = {
-  blue: 'bg-blue-50 text-blue-600',
-  violet: 'bg-violet-50 text-violet-600',
-  emerald: 'bg-emerald-50 text-emerald-600',
-  amber: 'bg-amber-50 text-amber-600',
+  primary: 'bg-primary/10 text-primary',
 }
 
 function StatCard({ stat }) {
@@ -84,7 +81,7 @@ function StatCard({ stat }) {
       <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900">{stat.value}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-        <span className={`inline-flex items-center gap-1 font-semibold ${stat.positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <span className={`inline-flex items-center gap-1 font-semibold ${stat.positive ? 'text-success' : 'text-error'}`}>
           <TrendIcon size={14} />
           {stat.change}
         </span>
@@ -99,7 +96,7 @@ export default function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-7">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium text-blue-600">OVERVIEW</p>
+          <p className="text-sm font-medium text-primary">OVERVIEW</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
             Dashboard
           </h2>
@@ -152,10 +149,10 @@ export default function Dashboard() {
                       <span
                         className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
                           trip.status === 'Completed'
-                            ? 'bg-emerald-50 text-emerald-700'
+                            ? 'bg-success/10 text-success'
                             : trip.status === 'In progress'
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-amber-50 text-amber-700'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-warning/15 text-warning'
                         }`}
                       >
                         {trip.status}
@@ -180,7 +177,7 @@ export default function Dashboard() {
               ['Authentication', 'Protect admin-only routes', false],
             ].map(([title, description, complete]) => (
               <div key={title} className="flex gap-3">
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${complete ? 'bg-success/10 text-success' : 'bg-slate-100 text-slate-500'}`}>
                   {complete ? '✓' : '•'}
                 </span>
                 <div>
