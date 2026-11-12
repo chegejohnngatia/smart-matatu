@@ -1,11 +1,12 @@
+
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, BusFront, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, BusFront } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import './auth.css'
 
 export default function Login() {
-  const { currentUser, login } = useAuth()
+  const { currentUser, login, authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -13,11 +14,70 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // Display a rotating dotted-circle while Flask session is being restored.
+  if (authLoading) {
+    return (
+      <main className="auth-loading-screen">
+        <div className="auth-loading-spinner" aria-label="Loading">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <span
+              key={index}
+              style={{ '--dot-index': index }}
+            />
+          ))}
+        </div>
+
+        <style>{`
+          .auth-loading-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+          }
+
+          .auth-loading-spinner {
+            position: relative;
+            width: 54px;
+            height: 54px;
+            animation: auth-spin 1.2s linear infinite;
+          }
+
+          .auth-loading-spinner span {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2563eb;
+            transform: translateX(-50%) rotate(calc(var(--dot-index) * 30deg));
+            transform-origin: 0 27px;
+            opacity: calc(1 - var(--dot-index) * 0.065);
+          }
+
+          @keyframes auth-spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .auth-loading-spinner {
+              animation-duration: 3s;
+            }
+          }
+        `}</style>
+      </main>
+    )
+  }
 
   if (currentUser) {
     const home =
       currentUser.role === 'admin'
-        ? '/admin/dashboard'
+        ? '/admin/create-user'
         : currentUser.role === 'conductor'
           ? '/conductor'
           : '/'
@@ -25,40 +85,51 @@ export default function Login() {
     return <Navigate to={home} replace />
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+    setSubmitting(true)
 
-    const result = login(email, password)
+    try {
+      const result = await login(email, password)
 
-    if (!result.success) {
-      setError(result.message)
-      return
+      if (!result.success) {
+        setError(result.message)
+        return
+      }
+
+      const destination = location.state?.from
+
+      if (
+        destination?.startsWith('/admin') &&
+        result.user.role !== 'admin'
+      ) {
+        navigate('/conductor', { replace: true })
+        return
+      }
+
+      if (
+        destination?.startsWith('/conductor') &&
+        result.user.role !== 'conductor'
+      ) {
+        navigate('/admin/create-user', { replace: true })
+        return
+      }
+
+      const home =
+        result.user.role === 'admin'
+          ? '/admin/create-user'
+          : result.user.role === 'conductor'
+            ? '/conductor'
+            : '/'
+
+      navigate(home, { replace: true })
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
-
-    const destination = location.state?.from
-
-    if (destination?.startsWith('/admin') && result.user.role !== 'admin') {
-      navigate('/conductor', { replace: true })
-      return
-    }
-
-    if (
-      destination?.startsWith('/conductor') &&
-      result.user.role !== 'conductor'
-    ) {
-      navigate('/admin/dashboard', { replace: true })
-      return
-    }
-
-    const home =
-      result.user.role === 'admin'
-        ? '/admin/dashboard'
-        : result.user.role === 'conductor'
-          ? '/conductor'
-          : '/'
-
-    navigate(home, { replace: true })
   }
 
   return (
@@ -78,16 +149,7 @@ export default function Login() {
             Manage your fleet, coordinate trips and help make public
             transport more efficient.
           </p>
-
-          <div className="auth-feature">
-            <ShieldCheck size={21} />
-            <span>Role-based access for authorized users</span>
-          </div>
         </div>
-
-        <p className="auth-footer">
-          Smart Matatu · Development environment
-        </p>
       </section>
 
       <section className="auth-form-panel">
@@ -115,7 +177,7 @@ export default function Login() {
               id="email"
               type="email"
               autoComplete="username"
-              placeholder="you@example.com"
+              placeholder="alex214@gmail.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -143,15 +205,14 @@ export default function Login() {
               </button>
             </div>
 
-            <button type="submit" className="auth-submit">
-              Sign in
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={submitting}
+            >
+              {submitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          <p className="auth-demo-note">
-            Demo mode is active. Use the temporary test credentials
-            provided in your development instructions.
-          </p>
         </div>
       </section>
     </main>
