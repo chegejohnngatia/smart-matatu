@@ -16,3 +16,4 @@ instance/
 /AGENTS.md
 /INTEGRATION.md
 /Smart-Matatu-Developer-Overview.md
+*.db
