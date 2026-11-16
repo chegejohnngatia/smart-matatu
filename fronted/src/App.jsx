@@ -1,89 +1,92 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes } from 'react-router-dom'
 
-import Landing from "./components/Landing";
-import AdminLayout from "./components/admin/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
-import ResourcePage from "./pages/admin/ResourcePage";
-import AdminDashboard from "./components/AdminDashboard";
-import ConductorLayout from "./components/conductor/ConductorLayout";
-import ConductorDashboard from "./pages/conductor/ConductorDashboard";
-import ConductorSectionPage from "./pages/conductor/ConductorSectionPage";
+import Landing from './components/Landing'
+import AdminLayout from './components/admin/AdminLayout'
+import MatatuManagement from './pages/admin/MatatuManagement'
+import RouteManagement from './pages/admin/RouteManagement'
+import ConductorManagement from './pages/admin/ConductorManagement'
+import ConductorEmergencyAlerts from './pages/conductor/ConductorEmergencyAlerts'
+import ConductorLayout from './components/conductor/ConductorLayout'
+import ConductorDashboard from './pages/conductor/ConductorDashboard'
+import ConductorBalances from './pages/conductor/ConductorBalances'
+import ConductorRequests from './pages/conductor/ConductorRequests'
+import ConductorQRCode from './pages/conductor/ConductorQRCode'
+import ConductorSectionPage from './pages/conductor/ConductorSectionPage'
 
-import Passenger from "./pages/Passenger";
+import Passenger from './pages/Passenger'
 
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import Login from "./pages/auth/Login";
-import CreateUser from "./pages/admin/CreateUser";
+import { AuthProvider, useAuth } from './context/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import Login from './pages/auth/Login'
+import CreateUser from './pages/admin/CreateUser'
 
 function RoleHome() {
-  const { currentUser } = useAuth();
+  const { currentUser } = useAuth()
 
-  if (currentUser?.role === "admin") {
-    return <Navigate to="/admin/dashboard" replace />;
+  if (currentUser?.role === 'admin') {
+    return <Navigate to="/admin/create-user" replace />
   }
 
-  if (currentUser?.role === "conductor") {
-    return <Navigate to="/conductor" replace />;
+  if (currentUser?.role === 'conductor') {
+    return <Navigate to="/conductor" replace />
   }
 
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/login" replace />
 }
 
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public pages */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<RoleHome />} />
 
+      {/* Passenger pages */}
       <Route path="/passenger" element={<Passenger />} />
       <Route path="/passenger/:matatuId" element={<Passenger />} />
 
+      {/* Admin workspace */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/admin-prototype" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="matatus" element={<ResourcePage />} />
-        <Route path="routes" element={<ResourcePage />} />
-        <Route path="users" element={<ResourcePage />} />
+        <Route index element={<Navigate to="create-user" replace />} />
+        <Route path="matatus" element={<MatatuManagement />} />
+        <Route path="routes" element={<RouteManagement />} />
+        <Route path="users" element={<ConductorManagement />} />
         <Route path="create-user" element={<CreateUser />} />
-        <Route path="trips" element={<ResourcePage />} />
-        <Route path="requests" element={<ResourcePage />} />
       </Route>
 
-      <Route
-        path="/admin-prototype"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-
+      {/* Conductor workspace */}
       <Route
         path="/conductor"
         element={
-          <ProtectedRoute allowedRoles={["conductor"]}>
+          <ProtectedRoute allowedRoles={['conductor']}>
             <ConductorLayout />
           </ProtectedRoute>
         }
       >
         <Route index element={<ConductorDashboard />} />
         <Route path="trip" element={<ConductorSectionPage />} />
-        <Route path="requests" element={<ConductorSectionPage />} />
         <Route path="history" element={<ConductorSectionPage />} />
+        <Route path="balances" element={<ConductorBalances />} />
+        <Route path="requests" element={<ConductorRequests />} />
+        <Route
+          path="emergency-alerts"
+          element={<ConductorEmergencyAlerts />}
+        />
+        <Route path="qr-code" element={<ConductorQRCode />} />
       </Route>
 
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  );
+  )
 }
 
 export default function App() {
@@ -91,5 +94,5 @@ export default function App() {
     <AuthProvider>
       <AppRoutes />
     </AuthProvider>
-  );
+  )
 }
