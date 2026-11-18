@@ -42,7 +42,7 @@ export default function ConductorSectionPage() {
     <div className="space-y-6">
       <header>
         <div className="flex items-center gap-3">
-          <span className="rounded-xl bg-emerald-100 p-3 text-emerald-700">
+          <span className="rounded-xl bg-primary/10 p-3 text-primary">
             <Icon size={24} />
           </span>
           <div>

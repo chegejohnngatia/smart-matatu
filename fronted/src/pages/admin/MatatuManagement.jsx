@@ -24,7 +24,7 @@ import {
 } from '../../services/adminApi'
 
 const inputClass =
-  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15'
 
 export default function MatatuManagement() {
   const { csrfToken } = useAuth()
@@ -233,7 +233,7 @@ export default function MatatuManagement() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content shadow-sm hover:bg-primary/90"
           >
             <Plus size={17} />
             Register Matatu
@@ -256,7 +256,7 @@ export default function MatatuManagement() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Active Matatus</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-600">{activeCount}</p>
+          <p className="mt-2 text-3xl font-bold text-primary">{activeCount}</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -307,7 +307,7 @@ export default function MatatuManagement() {
                     <tr key={matatu.id} className="hover:bg-slate-50/70">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
+                          <div className="rounded-xl bg-primary/10 p-2 text-primary">
                             <Bus size={19} />
                           </div>
                           <div>
@@ -334,7 +334,7 @@ export default function MatatuManagement() {
                             Archived
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                             Active
                           </span>
                         )}
@@ -372,7 +372,7 @@ export default function MatatuManagement() {
                                 onClick={() => handleRestore(matatu)}
                                 disabled={busy}
                                 title="Restore matatu"
-                                className="rounded-lg border border-emerald-200 p-2 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                                className="rounded-lg border border-primary/30 p-2 text-primary hover:bg-primary/10 disabled:opacity-50"
                               >
                                 <RotateCcw size={16} />
                               </button>
@@ -486,7 +486,7 @@ export default function MatatuManagement() {
                 <button
                   type="submit"
                   disabled={saving || activeRoutes.length === 0}
-                  className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving
                     ? 'Saving...'

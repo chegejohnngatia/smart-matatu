@@ -66,7 +66,7 @@ function AlertCard({ alert, onAcknowledge, acknowledgingId }) {
           type="button"
           disabled={isAcknowledging}
           onClick={() => onAcknowledge(alert.alert_id)}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-content transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <CheckCircle size={16} />
           {isAcknowledging ? 'Processing...' : 'Acknowledge'}
@@ -77,8 +77,9 @@ function AlertCard({ alert, onAcknowledge, acknowledgingId }) {
 }
 
 export default function ConductorEmergencyAlerts() {
-  // Retrieve the authenticated session's CSRF token.
-  const { csrfToken } = useAuth()
+  // Retrieve the authenticated session's CSRF token and user assignment.
+  const { currentUser, csrfToken } = useAuth()
+  const matatuId = currentUser?.matatu?.id || 1
 
   const [emergencyAlerts, setEmergencyAlerts] = useState({
     unresolved_count: 0,
@@ -108,7 +109,7 @@ export default function ConductorEmergencyAlerts() {
 
       setAlertError('')
 
-      const data = await getConductorEmergencyAlerts()
+      const data = await getConductorEmergencyAlerts(matatuId)
       setEmergencyAlerts(data)
     } catch (err) {
       setAlertError(err.message || 'Could not load emergency alerts.')
@@ -116,14 +117,14 @@ export default function ConductorEmergencyAlerts() {
       setLoading(false)
       requestInProgress.current = false
     }
-  }, [])
+  }, [matatuId])
 
   useEffect(() => {
     loadEmergencyAlerts(true)
 
     const intervalId = setInterval(() => {
       loadEmergencyAlerts()
-    }, 1000)
+    }, 2500)
 
     return () => clearInterval(intervalId)
   }, [loadEmergencyAlerts])
@@ -137,7 +138,7 @@ export default function ConductorEmergencyAlerts() {
 
     try {
       // Send the authenticated session's CSRF token.
-      await acknowledgeEmergencyAlert(alertId, csrfToken)
+      await acknowledgeEmergencyAlert(alertId, csrfToken, matatuId)
 
       setAcknowledgementMessage('Alert acknowledged successfully.')
 
@@ -164,8 +165,8 @@ export default function ConductorEmergencyAlerts() {
             Important passenger issues that need your attention.
           </p>
 
-          <p className="mt-1 text-xs text-emerald-700">
-            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-500" />
+          <p className="mt-1 text-xs text-primary">
+            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-primary" />
             Alerts update automatically.
           </p>
         </div>
@@ -187,7 +188,7 @@ export default function ConductorEmergencyAlerts() {
       </div>
 
       {acknowledgementMessage && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary">
           <CheckCircle size={18} />
           {acknowledgementMessage}
         </div>
@@ -250,7 +251,7 @@ export default function ConductorEmergencyAlerts() {
             {activeExpanded && (
               emergencyAlerts.active_alerts.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">
-                  <CheckCircle className="mb-2 text-emerald-600" size={24} />
+                  <CheckCircle className="mb-2 text-primary" size={24} />
                   There are no active alerts.
                 </div>
               ) : (
@@ -308,7 +309,7 @@ export default function ConductorEmergencyAlerts() {
                     >
                       <div className="flex items-start gap-3">
                         <CheckCircle
-                          className="mt-1 shrink-0 text-emerald-600"
+                          className="mt-1 shrink-0 text-primary"
                           size={21}
                         />
 

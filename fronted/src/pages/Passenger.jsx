@@ -1,84 +1,554 @@
-import { useState, useEffect } from 'react';
-import { Bus, History, ChevronUp, ChevronDown } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { BusFront, QrCode, X, ArrowLeft } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
+import { api, ApiError } from "../api/client";
+import PassengerMap from "../components/passenger/PassengerMap";
+import TripSheet from "../components/passenger/TripSheet";
+import "../components/passenger/passenger.css";
 
-export default function Passenger() {
-  const [dest, setDest] = useState('');
-  const [open, setOpen] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [trip, setTrip] = useState({ plate: '', route: '', code: '', stages: [] });
+const initialTrip = { plate: "", route: "", code: "", stages: [] };
+
+function directionBetween(previous, next) {
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+  const lat1 = toRadians(Number(previous.latitude));
+  const lat2 = toRadians(Number(next.latitude));
+  const deltaLon = toRadians(Number(next.longitude) - Number(previous.longitude));
+  const y = Math.sin(deltaLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon);
+  const degrees = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+  return `${(Math.round(degrees / 45) * 45) % 360}°`;
+}
+
+function updatedAgo(location, now) {
+  if (!location?.last_updated_at) return "Waiting for update";
+  const timestamp = Date.parse(location.last_updated_at);
+  if (!Number.isFinite(timestamp)) return "Waiting for update";
+  const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  return `Updated ${seconds}s ago`;
+}
+
+function PassengerDashboard({ matatuId }) {
+  const navigate = useNavigate();
+  const [trip, setTrip] = useState(initialTrip);
   const [history, setHistory] = useState([]);
+  const [matatus, setMatatus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [location, setLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("reconnecting");
+  const [locationError, setLocationError] = useState("");
+  const [statusResponse, setStatusResponse] = useState(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [heading, setHeading] = useState(null);
+  const [destination, setDestination] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [activeDestinationId, setActiveDestinationId] = useState(() => {
+    try {
+      return matatuId ? sessionStorage.getItem(`passenger_destination_${matatuId}`) : null;
+    } catch {
+      return null;
+    }
+  });
 
+  const [theme, setTheme] = useState(() => {
+    try {
+      return (
+        localStorage.getItem("passenger-theme") ||
+        (window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "passenger-dark"
+          : "passenger-light")
+      );
+    } catch {
+      return "passenger-light";
+    }
+  });
+  const locationRef = useRef(null);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+
+  // Load matatus list for vehicle switching and selection
   useEffect(() => {
-    fetch('/api/passenger/trip-info').then(r => r.json()).then(d => { setTrip(d); setConnected(true); }).catch(() => {});
-    fetch('/api/passenger/history').then(r => r.json()).then(d => Array.isArray(d) && setHistory(d)).catch(() => {});
+    let active = true;
+    api.listMatatus().then((data) => {
+      if (active) setMatatus(data || []);
+    }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
-  const register = async (e) => {
-    e.preventDefault();
-    if (!dest) return;
-    const res = await fetch('/api/passenger/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ destination: dest })
+  // Load trip info and history for current matatu
+  useEffect(() => {
+    if (!matatuId) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setLoadError("");
+
+    Promise.all([
+      api.getPassengerTrip(matatuId),
+      api.getPassengerHistory(matatuId),
+    ])
+      .then(([tripData, historyData]) => {
+        if (!active) return;
+        setTrip(tripData);
+        setHistory(historyData || []);
+        setConnected(true);
+        if (tripData.location) {
+          setLocation(tripData.location);
+          locationRef.current = tripData.location;
+          setLocationStatus("live");
+        }
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.message || "Could not connect to vehicle trip data.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [matatuId]);
+
+  // QR Scanner for vehicle selection
+  useEffect(() => {
+    if (matatuId || !scanOpen) return undefined;
+    const scanner = new Html5Qrcode("passenger-qr-reader");
+    let disposed = false;
+    let scanHandled = false;
+    let cleanupPromise;
+    let startPromise;
+
+    const stopAndClear = () => {
+      cleanupPromise ||= (async () => {
+        try {
+          await startPromise;
+        } catch {
+          /* Startup can fail before the camera opens. */
+        }
+        try {
+          if (scanner.isScanning) await scanner.stop();
+        } catch {
+          /* Continue cleanup if browser stopped camera. */
+        }
+        try {
+          await scanner.clear();
+        } catch {
+          /* Already cleared. */
+        }
+      })();
+      return cleanupPromise;
+    };
+
+    const handleScan = async (value) => {
+      if (disposed || scanHandled) return;
+      const match = value.match(/\/passenger\/(\d+)(?:[/?#]|$)/);
+      const scannedId = match?.[1] || value.trim().match(/^\d+$/)?.[0];
+      if (!scannedId) {
+        setScanError("This QR code is not a Smart Matatu vehicle code.");
+        return;
+      }
+      scanHandled = true;
+      await stopAndClear();
+      if (disposed) return;
+      setScanError("");
+      setScanOpen(false);
+      navigate(`/passenger/${scannedId}`, { replace: true });
+    };
+
+    startPromise = scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      (value) => {
+        void handleScan(value);
+      },
+      () => {}
+    );
+    startPromise.catch(() => {
+      if (!disposed)
+        setScanError("Camera access is unavailable. Check your browser permissions.");
     });
-    if (res.ok) {
-      const item = await res.json();
-      setHistory([item, ...history]);
-      setDest('');
-      setOpen(true);
+
+    return () => {
+      disposed = true;
+      void stopAndClear();
+    };
+  }, [matatuId, navigate, scanOpen]);
+
+  // Update vehicle location and passenger statuses
+  const updateLocation = useCallback(async () => {
+    if (!matatuId) return;
+    try {
+      const data = await api.getVehicleStatus(matatuId);
+      const next = data.location || null;
+      if (!next) {
+        setStatusResponse(data);
+        setLocationStatus("offline");
+        setLocationError("No vehicle location has been reported yet.");
+        return;
+      }
+      const previous = locationRef.current;
+      if (
+        previous &&
+        (previous.latitude !== next.latitude ||
+          previous.longitude !== next.longitude)
+      ) {
+        setHeading(directionBetween(previous, next));
+      }
+      locationRef.current = next;
+      setLocation(next);
+      setLocationError("");
+      const age = Date.now() - Date.parse(next.last_updated_at || 0);
+      setLocationStatus(next.stale || age > 60_000 ? "offline" : "live");
+      setTrip((current) => ({
+        ...current,
+        plate: data.matatu || current.plate,
+        route: data.route || current.route,
+      }));
+      setStatusResponse(data);
+    } catch (error) {
+      setLocationStatus(navigator.onLine ? "reconnecting" : "offline");
+      setLocationError(
+        error instanceof ApiError && error.status === 404
+          ? "Vehicle location pending initialization."
+          : "Could not refresh vehicle location."
+      );
+    }
+  }, [matatuId]);
+
+  // Polling loop
+  useEffect(() => {
+    if (!matatuId) return undefined;
+    let active = true;
+    let timeout;
+
+    const poll = async () => {
+      if (!active) return;
+      if (navigator.onLine && document.visibilityState === "visible") {
+        await updateLocation();
+      } else {
+        setLocationStatus("offline");
+      }
+      if (active) timeout = window.setTimeout(poll, 2500);
+    };
+
+    poll();
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [matatuId, updateLocation]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const online = () => setIsOnline(true);
+    const offline = () => setIsOnline(false);
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("online", online);
+      window.removeEventListener("offline", offline);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("passenger-theme", theme);
+    } catch {
+      /* Storage can be disabled by browser. */
+    }
+  }, [theme]);
+
+  // Compute active journey
+  const activeJourney = useMemo(() => {
+    const latest = history[0];
+    if (!latest && !activeDestinationId) return null;
+
+    if (statusResponse?.passengers && latest) {
+      const match = statusResponse.passengers.find((p) => p.id === latest.id);
+      if (match) return match;
+    }
+
+    if (latest) {
+      return {
+        id: latest.id,
+        destination: latest.destination,
+        destination_stage_id: latest.destination_stage_id,
+        destination_sequence: latest.destination_sequence,
+        status: latest.status || "In transit",
+        eta: null,
+        distance: null,
+      };
+    }
+
+    return null;
+  }, [history, statusResponse, activeDestinationId]);
+
+  const visibleLocationStatus =
+    !isOnline ||
+    (location &&
+      (location.stale || now - Date.parse(location.last_updated_at || 0) > 60_000))
+      ? "offline"
+      : locationStatus;
+
+  // Register destination and start journey
+  const register = async (event) => {
+    event.preventDefault();
+    if (!destination || !matatuId || submitting) return;
+    setSubmitting(true);
+    setLoadError("");
+    try {
+      const item = await api.registerPassenger(matatuId, destination);
+      setHistory((items) => [item, ...items]);
+      setActiveDestinationId(destination);
+      try {
+        sessionStorage.setItem(`passenger_destination_${matatuId}`, destination);
+      } catch {
+        /* Storage ignored */
+      }
+      setDestination("");
+      await updateLocation();
+    } catch (error) {
+      setLoadError(
+        error instanceof ApiError ? error.message : "Could not register this journey."
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col justify-between pb-20">
-      <div className="max-w-md w-full space-y-4 mx-auto">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
-          <span className="font-bold flex items-center gap-2"><Bus className="w-5 text-blue-500"/> Matatu Smart</span>
-          <span className={`text-xs px-2.5 py-1 rounded-full ${connected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-            {connected ? 'Live' : 'Offline'}
-          </span>
-        </div>
+  // Movement simulation handlers
+  const handleMoveMatatu = async () => {
+    if (!matatuId) return;
+    try {
+      await api.moveMatatu(matatuId);
+      await updateLocation();
+      const updatedHistory = await api.getPassengerHistory(matatuId);
+      setHistory(updatedHistory || []);
+    } catch (err) {
+      console.error("Simulation move error:", err);
+    }
+  };
 
-        <div className="grid grid-cols-3 bg-slate-900 border border-slate-800 rounded-xl p-3 text-center text-sm font-bold">
-          <div><p className="text-[10px] text-slate-500">PLATE</p>{trip.plate || '---'}</div>
-          <div className="border-x border-slate-800"><p className="text-[10px] text-slate-500">ROUTE</p>{trip.route || '---'}</div>
-          <div><p className="text-[10px] text-slate-500">TRIP</p><span className="text-blue-400">{trip.code || '---'}</span></div>
-        </div>
+  const handleResetMatatu = async () => {
+    if (!matatuId) return;
+    try {
+      await api.resetMatatu(matatuId);
+      await updateLocation();
+      const updatedHistory = await api.getPassengerHistory(matatuId);
+      setHistory(updatedHistory || []);
+    } catch (err) {
+      console.error("Simulation reset error:", err);
+    }
+  };
 
-        <form onSubmit={register} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold">Select Destination</h2>
-          <select value={dest} onChange={e => setDest(e.target.value)} disabled={!connected} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm disabled:opacity-50" required>
-            <option value="" disabled>{connected ? 'Select stage...' : 'Please connect to backend'}</option>
-            {trip.stages?.map((s, i) => <option key={i} value={s.name || s}>{s.name || s}</option>)}
-          </select>
-          <button disabled={!connected} className="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50">Register Journey</button>
-        </form>
-      </div>
+  const handleEndJourney = () => {
+    try {
+      sessionStorage.removeItem(`passenger_destination_${matatuId}`);
+    } catch {
+      /* Storage ignored */
+    }
+    setActiveDestinationId(null);
+  };
 
-      <div className="fixed bottom-0 left-0 right-0 flex justify-center p-3 bg-slate-950/80">
-        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl">
-          <button onClick={() => setOpen(!open)} className="w-full p-3 flex justify-between items-center text-sm">
-            <span className="flex items-center gap-2"><History className="w-4 text-slate-400"/> History ({history.length})</span>
-            {open ? <ChevronDown className="w-4"/> : <ChevronUp className="w-4"/>}
-          </button>
-          {open && (
-            <div className="p-3 pt-0 space-y-2 max-h-48 overflow-y-auto border-t border-slate-800 text-sm">
-              {!connected ? (
-                <p className="text-xs text-amber-400 text-center py-3">Please connect to backend</p>
-              ) : history.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-3">No history yet.</p>
-              ) : (
-                history.map((item, i) => (
-                  <div key={i} className="flex justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
-                    <span>{item.destination}</span>
-                    <span className="text-blue-400">{item.status}</span>
+  const handleSelectMatatu = (id) => {
+    navigate(`/passenger/${id}`);
+  };
+
+  // If no vehicle selected, show vehicle selection screen
+  if (!matatuId) {
+    return (
+      <main className="passenger-root selection-page" data-theme={theme}>
+        <div className="selection-shell">
+          <header className="selection-header">
+            <span className="brand-mark">
+              <BusFront size={20} />
+            </span>
+            <span className="font-bold text-lg">Matatu Smart</span>
+          </header>
+          <section className="selection-card">
+            <p className="eyebrow">PASSENGER PORTAL</p>
+            <h1 className="text-2xl font-black tracking-tight">Choose your matatu</h1>
+            <p className="text-base-content/65 text-sm">
+              Select your vehicle to view its assigned route, choose your destination stage, and track your journey live.
+            </p>
+
+            <button
+              className="btn btn-primary w-full gap-2 font-bold shadow-md shadow-primary/20"
+              type="button"
+              onClick={() => {
+                setScanError("");
+                setScanOpen(true);
+              }}
+            >
+              <QrCode size={18} />
+              Scan vehicle QR code
+            </button>
+
+            {scanOpen && (
+              <div className="scanner-panel">
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="font-semibold text-sm">Scan Vehicle QR Code</h2>
+                  <button
+                    className="btn btn-ghost btn-circle btn-sm"
+                    type="button"
+                    onClick={() => setScanOpen(false)}
+                    aria-label="Close QR scanner"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div id="passenger-qr-reader" className="overflow-hidden rounded-md" />
+                {scanError && (
+                  <p className="mt-2 text-sm text-error" role="alert">
+                    {scanError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {loading && (
+              <div className="space-y-3" aria-label="Loading vehicles">
+                <div className="skeleton h-16 w-full" />
+                <div className="skeleton h-16 w-full" />
+              </div>
+            )}
+
+            {loadError && (
+              <p className="alert alert-error text-sm" role="alert">
+                {loadError}
+              </p>
+            )}
+
+            {!loading && !loadError && !matatus.length && (
+              <p className="py-4 text-sm text-base-content/60 text-center">
+                No active vehicles registered in system.
+              </p>
+            )}
+
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-base-content/60">
+                  Available Fleet & Routes
+                </h3>
+                <span className="badge badge-sm badge-ghost">{matatus.length} Vehicles</span>
+              </div>
+              {matatus.map((m) => (
+                <button
+                  className="vehicle-choice w-full flex items-center justify-between p-3.5 rounded-xl border border-base-300 bg-base-100 hover:bg-base-200 transition-all text-left"
+                  key={m.id}
+                  type="button"
+                  onClick={() => navigate(`/passenger/${m.id}`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <BusFront size={20} />
+                    </span>
+                    <div>
+                      <strong className="block text-base font-bold text-base-content">
+                        {m.registration_number}
+                      </strong>
+                      <span className="block text-xs text-base-content/65 font-medium">
+                        Route: {m.route_name}
+                      </span>
+                    </div>
                   </div>
-                ))
-              )}
+                  <span className="text-base-content/40 font-bold text-lg">›</span>
+                </button>
+              ))}
             </div>
-          )}
+          </section>
         </div>
+      </main>
+    );
+  }
+
+  // Passenger Live Journey Dashboard
+  return (
+    <main className="passenger-root passenger-dashboard" data-theme={theme}>
+      <header className="map-topbar">
+        <button
+          className="map-back"
+          type="button"
+          onClick={() => navigate("/passenger")}
+          aria-label="Choose another vehicle"
+        >
+          <ArrowLeft size={18} />
+          <span className="topbar-copy">
+            <strong>Matatu Smart</strong>
+            <span>{trip.route || "Live journey"}</span>
+          </span>
+        </button>
+        <div className="topbar-vehicle">
+          <span className="topbar-plate">{trip.plate || "Vehicle"}</span>
+          <span className="topbar-code">{trip.code}</span>
+        </div>
+      </header>
+
+      <div className="passenger-content">
+        {loading ? (
+          <div className="dashboard-skeleton" aria-label="Loading live journey">
+            <div className="skeleton map-skeleton" />
+            <div className="skeleton sheet-skeleton" />
+          </div>
+        ) : (
+          <>
+            <PassengerMap
+              stages={trip.stages}
+              location={location}
+              registration={trip.plate}
+              status={visibleLocationStatus}
+              destinationStageId={activeDestinationId || destination}
+            />
+            <TripSheet
+              trip={trip}
+              history={history}
+              location={location}
+              journeyProgress={activeJourney}
+              locationStatus={visibleLocationStatus}
+              heading={heading}
+              updatedLabel={updatedAgo(location, now)}
+              error={loadError || locationError}
+              destination={destination}
+              setDestination={setDestination}
+              onRegister={register}
+              submitting={submitting}
+              connected={connected}
+              expanded={expanded}
+              setExpanded={setExpanded}
+              theme={theme}
+              setTheme={setTheme}
+              isOnline={isOnline}
+              matatus={matatus}
+              activeDestinationStageId={activeDestinationId}
+              onMoveMatatu={handleMoveMatatu}
+              onResetMatatu={handleResetMatatu}
+              onEndJourney={handleEndJourney}
+              onSelectMatatu={handleSelectMatatu}
+            />
+          </>
+        )}
       </div>
-    </div>
+    </main>
+  );
+}
+
+export default function Passenger() {
+  const { matatuId } = useParams();
+  return (
+    <PassengerDashboard
+      key={matatuId || "vehicle-selection"}
+      matatuId={matatuId}
+    />
   );
 }

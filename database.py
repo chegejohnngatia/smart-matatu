@@ -3,10 +3,9 @@ import sqlite3
 import os
 
 DATABASE = os.path.abspath(
-    os.environ.get(
-        "SMART_MATATU_DB",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "smart_matatu.db")
-    )
+    os.environ.get("SMART_MATATU_DB")
+    or os.environ.get("DATABASE_PATH")
+    or os.path.join(os.path.dirname(os.path.abspath(__file__)), "smart_matatu.db")
 )
 
 
@@ -182,8 +181,46 @@ def init_db():
                 matatu_id INTEGER PRIMARY KEY,
                 latitude REAL NOT NULL,
                 longitude REAL NOT NULL,
-                current_stage_sequence INTEGER DEFAULT 0
+                current_stage_sequence INTEGER DEFAULT 0,
+                speed REAL DEFAULT 20,
+                accuracy REAL,
+                last_updated_at TEXT,
+                location_source TEXT DEFAULT 'simulation'
             )
+        """)
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS matatu_location_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                matatu_id INTEGER NOT NULL,
+                latitude REAL NOT NULL,
+                longitude REAL NOT NULL,
+                speed REAL,
+                accuracy REAL,
+                source TEXT NOT NULL,
+                recorded_at TEXT NOT NULL,
+                received_at TEXT NOT NULL
+            )
+        """)
+
+        location_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(matatu_locations)")
+        }
+        for column, definition in (
+            ("speed", "REAL DEFAULT 20"),
+            ("accuracy", "REAL"),
+            ("last_updated_at", "TEXT"),
+            ("location_source", "TEXT DEFAULT 'simulation'"),
+        ):
+            if column not in location_columns:
+                connection.execute(
+                    f"ALTER TABLE matatu_locations ADD COLUMN {column} {definition}"
+                )
+
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_matatu_location_history_matatu_recorded
+            ON matatu_location_history (matatu_id, recorded_at)
         """)
 
         # Passenger balances owed by the conductor.

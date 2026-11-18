@@ -18,18 +18,13 @@ import {
 
 const links = [
   {
-    label: 'Destinations',
+    label: 'Dashboard & Trip',
     path: '/conductor',
     icon: MapPin,
     end: true,
   },
   {
-    label: 'Balances',
-    path: '/conductor/balances',
-    icon: Wallet,
-  },
-  {
-    label: 'Destination Change Requests',
+    label: 'Destination Requests',
     path: '/conductor/requests',
     icon: ArrowLeftRight,
   },
@@ -39,7 +34,7 @@ const links = [
     icon: BellRing,
   },
   {
-    label: 'Generate QR Code',
+    label: 'Vehicle QR Code',
     path: '/conductor/qr-code',
     icon: QrCode,
   },
@@ -77,13 +72,13 @@ export default function ConductorLayout() {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <Bus size={22} />
           </div>
 
           <div>
             <p className="text-lg font-bold">
-              Smart <span className="text-emerald-400">Matatu</span>
+              Smart <span className="text-primary">Matatu</span>
             </p>
             <p className="text-xs text-slate-400">
               Conductor workspace
@@ -104,7 +99,7 @@ export default function ConductorLayout() {
           <button
             type="button"
             onClick={handleHome}
-            className="flex w-full items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-600/15 px-3 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-600 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-primary/15 px-3 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-content"
           >
             <Home size={19} />
             <span>Home</span>
@@ -125,7 +120,7 @@ export default function ConductorLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                   isActive
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-primary text-primary-content'
                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`
               }
@@ -174,7 +169,7 @@ export default function ConductorLayout() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
               {(currentUser?.name || 'Conductor')
                 .charAt(0)
                 .toUpperCase()}

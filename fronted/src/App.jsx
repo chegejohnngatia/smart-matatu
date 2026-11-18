@@ -1,4 +1,3 @@
-
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Landing from './components/Landing'
@@ -12,6 +11,7 @@ import ConductorDashboard from './pages/conductor/ConductorDashboard'
 import ConductorBalances from './pages/conductor/ConductorBalances'
 import ConductorRequests from './pages/conductor/ConductorRequests'
 import ConductorQRCode from './pages/conductor/ConductorQRCode'
+import ConductorSectionPage from './pages/conductor/ConductorSectionPage'
 
 import Passenger from './pages/Passenger'
 
@@ -72,7 +72,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<ConductorDashboard />} />
-        <Route path="balances" element={<ConductorBalances />} />
+        <Route path="trip" element={<ConductorDashboard />} />
         <Route path="requests" element={<ConductorRequests />} />
         <Route
           path="emergency-alerts"

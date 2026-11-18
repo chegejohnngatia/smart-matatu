@@ -125,13 +125,13 @@ export default function AdminLayout() {
         }`}
       >
         <div className="flex h-20 shrink-0 items-center gap-3 border-b border-white/10 px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <Bus size={23} />
           </div>
 
           <div>
             <p className="text-lg font-bold">
-              Smart <span className="text-blue-400">Matatu</span>
+              Matatu <span className="text-primary">Smart</span>
             </p>
             <p className="text-xs text-slate-400">
               Management portal
@@ -179,7 +179,7 @@ export default function AdminLayout() {
                     aria-expanded={isExpanded}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
                       isActiveSection
-                        ? 'bg-blue-600/15 text-blue-300'
+                        ? 'bg-primary/15 text-primary'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`}
                   >
@@ -204,7 +204,7 @@ export default function AdminLayout() {
                             className={({ isActive }) =>
                               `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                                 isActive
-                                  ? 'bg-blue-600 text-white'
+                                  ? 'bg-primary text-primary-content'
                                   : 'text-slate-400 hover:bg-white/10 hover:text-white'
                               }`
                             }
@@ -260,10 +260,10 @@ export default function AdminLayout() {
               className="relative rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50"
             >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
             </button>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
               {currentUser?.name?.charAt(0)?.toUpperCase() || 'A'}
             </div>
 

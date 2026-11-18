@@ -108,7 +108,7 @@ export default function ConductorQRCode() {
     <main className="mx-auto w-full max-w-5xl p-5 sm:p-8">
       <header className="mb-8">
         <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900">
-          <QrCode className="text-emerald-600" size={28} />
+          <QrCode className="text-primary" size={28} />
           Matatu Passenger QR Code
         </h1>
 
@@ -132,7 +132,7 @@ export default function ConductorQRCode() {
           <button
             type="button"
             onClick={loadQRCode}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-content hover:bg-primary/90"
           >
             <RefreshCw size={16} />
             Try again
@@ -144,7 +144,7 @@ export default function ConductorQRCode() {
         <>
           <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-start gap-3">
-              <Bus className="mt-1 text-emerald-600" size={25} />
+              <Bus className="mt-1 text-primary" size={25} />
 
               <div>
                 <h2 className="font-semibold text-slate-800">
@@ -184,7 +184,7 @@ export default function ConductorQRCode() {
               <button
                 type="button"
                 onClick={printQRCode}
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-primary-content transition hover:bg-primary/90"
               >
                 <Printer size={19} />
                 Print QR Code
@@ -211,7 +211,7 @@ export default function ConductorQRCode() {
               >
                 {copied ? (
                   <>
-                    <CheckCircle size={17} className="text-emerald-600" />
+                    <CheckCircle size={17} className="text-primary" />
                     Copied
                   </>
                 ) : (
@@ -222,12 +222,12 @@ export default function ConductorQRCode() {
                 )}
               </button>
 
-              <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <h3 className="font-semibold text-emerald-900">
+              <div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-4">
+                <h3 className="font-semibold text-primary">
                   How to use this QR code
                 </h3>
 
-                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-emerald-900">
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-primary">
                   <li>Print the QR code.</li>
                   <li>Attach it behind the passenger seats.</li>
                   <li>Passengers scan it after boarding.</li>

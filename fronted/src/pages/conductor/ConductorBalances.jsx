@@ -206,7 +206,7 @@ export default function ConductorBalances() {
         <div className="flex flex-col items-center gap-3 text-slate-500">
           <LoaderCircle
             size={30}
-            className="animate-spin text-emerald-600"
+            className="animate-spin text-primary"
           />
           <p className="text-sm font-medium">
             Loading balance records...
@@ -221,7 +221,7 @@ export default function ConductorBalances() {
       {/* Page heading */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
             <Wallet size={17} />
             Conductor workspace
           </div>
@@ -273,7 +273,7 @@ export default function ConductorBalances() {
               </p>
             </div>
 
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Clock3 size={23} />
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function ConductorBalances() {
       {/* Add balance */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
             <Plus size={21} />
           </div>
 
@@ -314,7 +314,7 @@ export default function ConductorBalances() {
           {message && (
             <div
               role="status"
-              className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 sm:col-span-2 lg:col-span-3"
+              className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm text-primary sm:col-span-2 lg:col-span-3"
             >
               <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
               <p>{message}</p>
@@ -342,7 +342,7 @@ export default function ConductorBalances() {
                 onChange={(event) => setPassengerId(event.target.value)}
                 placeholder="e.g. P001"
                 required
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10"
               />
             </div>
           </div>
@@ -369,7 +369,7 @@ export default function ConductorBalances() {
                 onChange={(event) => setAmount(event.target.value)}
                 placeholder="e.g. 50"
                 required
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-14 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-14 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10"
               />
             </div>
           </div>
@@ -377,7 +377,7 @@ export default function ConductorBalances() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-content shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
               <LoaderCircle size={17} className="animate-spin" />
@@ -431,7 +431,7 @@ export default function ConductorBalances() {
           <div className="border-t border-slate-100">
             {pendingBalances.length === 0 ? (
               <div className="flex flex-col items-center px-5 py-12 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <CheckCircle2 size={28} />
                 </div>
 
@@ -494,7 +494,7 @@ export default function ConductorBalances() {
                         type="button"
                         disabled={payingId === balance.balance_id}
                         onClick={() => handleMarkPaid(balance)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {payingId === balance.balance_id ? (
                           <LoaderCircle size={16} className="animate-spin" />
@@ -618,7 +618,7 @@ export default function ConductorBalances() {
           className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-slate-50 sm:px-6"
         >
           <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <History size={21} />
             </span>
 
@@ -659,7 +659,7 @@ export default function ConductorBalances() {
                     className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <CheckCircle2 size={20} />
                       </div>
 
@@ -669,7 +669,7 @@ export default function ConductorBalances() {
                             {balance.passenger_id}
                           </h4>
 
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                             Paid
                           </span>
                         </div>
@@ -686,7 +686,7 @@ export default function ConductorBalances() {
                       </div>
                     </div>
 
-                    <p className="text-lg font-bold text-emerald-700 sm:text-right">
+                    <p className="text-lg font-bold text-primary sm:text-right">
                       {formatAmount(balance.amount)}
                     </p>
                   </article>

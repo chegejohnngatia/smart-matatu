@@ -24,7 +24,7 @@ import {
 } from '../../services/adminApi'
 
 const statusStyles = {
-  Active: 'bg-emerald-50 text-emerald-700',
+  Active: 'bg-primary/10 text-primary',
   Archived: 'bg-amber-50 text-amber-700',
   Deleted: 'bg-rose-50 text-rose-700',
 }
@@ -40,7 +40,7 @@ function formatDate(value) {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15'
 
 export default function ConductorManagement() {
   const { csrfToken } = useAuth()
@@ -251,7 +251,7 @@ export default function ConductorManagement() {
     <div className="mx-auto max-w-7xl space-y-7">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-blue-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Administration
           </p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -306,7 +306,7 @@ export default function ConductorManagement() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search name, email, matatu or route..."
-                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
 
@@ -318,7 +318,7 @@ export default function ConductorManagement() {
                   onClick={() => setStatusFilter(status)}
                   className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                     statusFilter === status
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-primary text-primary-content'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -348,7 +348,7 @@ export default function ConductorManagement() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <RefreshCw size={26} className="animate-spin text-blue-600" />
+            <RefreshCw size={26} className="animate-spin text-primary" />
             <p className="mt-4 text-sm font-medium text-slate-600">
               Loading conductor records...
             </p>
@@ -439,7 +439,7 @@ export default function ConductorManagement() {
                                 type="button"
                                 onClick={() => openEdit(conductor)}
                                 disabled={actionBusy}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 disabled:opacity-50"
                               >
                                 <Pencil size={14} />
                                 Edit
@@ -463,7 +463,7 @@ export default function ConductorManagement() {
                                 type="button"
                                 onClick={() => openRestore(conductor)}
                                 disabled={actionBusy}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 disabled:opacity-50"
                               >
                                 <RotateCcw size={14} />
                                 Restore
@@ -621,7 +621,7 @@ export default function ConductorManagement() {
                   <button
                     type="submit"
                     disabled={modalLoading}
-                    className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {modalLoading ? 'Saving...' : 'Save changes'}
                   </button>
@@ -684,7 +684,7 @@ export default function ConductorManagement() {
                       availableMatatus.length === 0 ||
                       !selectedMatatuId
                     }
-                    className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {modalLoading ? 'Restoring...' : 'Restore conductor'}
                   </button>

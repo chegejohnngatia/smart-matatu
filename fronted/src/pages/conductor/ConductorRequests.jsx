@@ -9,12 +9,16 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import {
   getDestinationChangeRequests,
   decideDestinationChangeRequest,
 } from '../../services/conductorApi'
 
 export default function ConductorRequests() {
+  const { currentUser, csrfToken } = useAuth()
+  const matatuId = currentUser?.matatu?.id || 1
+
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,7 +30,7 @@ export default function ConductorRequests() {
     try {
       if (showLoading) setLoading(true)
 
-      const data = await getDestinationChangeRequests()
+      const data = await getDestinationChangeRequests(matatuId)
       setRequests(data)
       setError('')
     } catch (err) {
@@ -34,14 +38,14 @@ export default function ConductorRequests() {
     } finally {
       if (showLoading) setLoading(false)
     }
-  }, [])
+  }, [matatuId])
 
   useEffect(() => {
     loadRequests(true)
 
     const intervalId = setInterval(() => {
       loadRequests()
-    }, 1000)
+    }, 2500)
 
     return () => clearInterval(intervalId)
   }, [loadRequests])
@@ -60,7 +64,7 @@ export default function ConductorRequests() {
     setNotice('')
 
     try {
-      const result = await decideDestinationChangeRequest(requestId, action)
+      const result = await decideDestinationChangeRequest(requestId, action, csrfToken)
 
       setNotice(result.message || 'Request resolved successfully.')
 
@@ -106,7 +110,7 @@ export default function ConductorRequests() {
       {notice && (
         <div
           role="status"
-          className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"
+          className="mb-5 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4 text-primary"
         >
           <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
           <p>{notice}</p>
@@ -195,11 +199,11 @@ export default function ConductorRequests() {
                           </p>
                         </div>
 
-                        <div className="rounded-lg bg-emerald-50 p-3">
-                          <p className="text-sm text-emerald-700">
+                        <div className="rounded-lg bg-primary/10 p-3">
+                          <p className="text-sm text-primary">
                             Requested destination
                           </p>
-                          <p className="mt-1 font-medium text-emerald-900">
+                          <p className="mt-1 font-medium text-primary">
                             {item.requested_destination || 'Unknown destination'}
                           </p>
                         </div>
@@ -218,7 +222,7 @@ export default function ConductorRequests() {
                             handleDecision(item.request_id, 'approve')
                           }
                           disabled={processingId !== null}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <CheckCircle2 size={17} />
                           {isProcessing ? 'Processing...' : 'Approve'}

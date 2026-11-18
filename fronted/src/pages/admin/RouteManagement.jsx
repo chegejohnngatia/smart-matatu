@@ -31,7 +31,7 @@ import {
 } from '../../services/adminApi'
 
 const inputClass =
-  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+  'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15'
 
 export default function RouteManagement() {
   const { csrfToken } = useAuth()
@@ -511,7 +511,7 @@ export default function RouteManagement() {
     <div className="mx-auto max-w-7xl space-y-7">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-blue-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Administration
           </p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -525,7 +525,7 @@ export default function RouteManagement() {
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content shadow-sm transition hover:bg-primary/90"
         >
           <Plus size={18} />
           Create route
@@ -592,7 +592,7 @@ export default function RouteManagement() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <RefreshCw size={26} className="animate-spin text-blue-600" />
+            <RefreshCw size={26} className="animate-spin text-primary" />
             <p className="mt-4 text-sm font-medium text-slate-600">
               Loading route records...
             </p>
@@ -611,7 +611,7 @@ export default function RouteManagement() {
             <button
               type="button"
               onClick={openCreate}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content hover:bg-primary/90"
             >
               <Plus size={17} />
               Create first route
@@ -646,7 +646,7 @@ export default function RouteManagement() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <MapPin size={17} />
                           </div>
                           <div>
@@ -668,7 +668,7 @@ export default function RouteManagement() {
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                             route.is_active
-                              ? 'bg-emerald-50 text-emerald-700'
+                              ? 'bg-primary/10 text-primary'
                               : 'bg-amber-50 text-amber-700'
                           }`}
                         >
@@ -706,7 +706,7 @@ export default function RouteManagement() {
                             type="button"
                             onClick={() => openEdit(route)}
                             disabled={actionBusy}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 disabled:opacity-50"
                           >
                             <Pencil size={14} />
                             Edit
@@ -719,7 +719,7 @@ export default function RouteManagement() {
                             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
                               route.is_active
                                 ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'
                             }`}
                           >
                             <Power size={14} />
@@ -790,7 +790,7 @@ export default function RouteManagement() {
                                       setStageFormError('')
                                     }
                                   }}
-                                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-content hover:bg-primary/90"
                                 >
                                   <Plus size={14} />
                                   {stageFormRouteId === route.id ? 'Cancel' : 'Add stage'}
@@ -800,7 +800,7 @@ export default function RouteManagement() {
                               {stageFormRouteId === route.id && (
                                 <form
                                   onSubmit={handleCreateStage}
-                                  className="mb-5 rounded-xl border border-blue-100 bg-white p-4"
+                                  className="mb-5 rounded-xl border border-primary/20 bg-white p-4"
                                 >
                                   <h4 className="mb-4 text-sm font-semibold text-slate-800">
                                     Add a stage to {route.name}
@@ -898,7 +898,7 @@ export default function RouteManagement() {
                                     <button
                                       type="submit"
                                       disabled={stageFormLoading}
-                                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                      className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                       {stageFormLoading ? 'Creating...' : 'Create stage'}
                                     </button>
@@ -913,7 +913,7 @@ export default function RouteManagement() {
                               ) : (
               <>
                                 {reorderingRouteId === route.id && (
-                          <p className="text-xs text-blue-600">
+                          <p className="text-xs text-primary">
                             Saving stage order...
                           </p>
                         )}
@@ -931,7 +931,7 @@ export default function RouteManagement() {
   className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3"
 >
   <div className="flex min-w-0 items-start gap-3">
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-bold text-blue-700">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
       {stage.sequence_number}
     </span>
     <div className="min-w-0">
@@ -949,7 +949,7 @@ export default function RouteManagement() {
       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
         stage.is_archived
           ? 'bg-amber-50 text-amber-700'
-          : 'bg-emerald-50 text-emerald-700'
+          : 'bg-primary/10 text-primary'
       }`}
     >
       {stage.is_archived ? 'Archived' : 'Active'}
@@ -1038,13 +1038,13 @@ export default function RouteManagement() {
             setRestoreStageError('')
           }}
           aria-label={`New position for ${stage.name}`}
-          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-blue-500"
+          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-primary"
         />
         <button
           type="button"
           disabled={restoringStageId === stage.id}
           onClick={() => handleRestoreStage(stage.id, route.id)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {restoringStageId === stage.id ? 'Restoring...' : 'Restore'}
         </button>
@@ -1077,7 +1077,7 @@ export default function RouteManagement() {
   {editingStageId === stage.id && (
     <form
       onSubmit={(event) => handleUpdateStage(event, stage.id, route.id)}
-      className="w-full rounded-xl border border-blue-100 bg-slate-50 p-4"
+      className="w-full rounded-xl border border-primary/20 bg-slate-50 p-4"
     >
       <h4 className="mb-3 text-sm font-semibold text-slate-800">
         Edit stage: {stage.name}
@@ -1153,7 +1153,7 @@ export default function RouteManagement() {
         <button
           type="submit"
           disabled={editStageLoading}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {editStageLoading ? 'Saving...' : 'Save changes'}
         </button>
@@ -1273,7 +1273,7 @@ export default function RouteManagement() {
                 <button
                   type="submit"
                   disabled={modalLoading}
-                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {modalLoading
                     ? 'Saving...'
