@@ -1,7 +1,25 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Bus, ShieldCheck, Users, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+const tileClasses =
+  "flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-5 text-left transition hover:border-primary";
 
 function Landing() {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Role tiles should open that role's login, even when the browser
+  // holds a session for a different role.
+  async function openArea(role, path) {
+    if (!currentUser || currentUser.role === role) {
+      navigate(currentUser ? path : '/login', { state: { from: path } });
+      return;
+    }
+    await logout();
+    navigate('/login', { state: { from: path } });
+  }
+
   return (
     <div className="min-h-screen bg-base-200 text-base-content flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
@@ -18,9 +36,10 @@ function Landing() {
         </p>
 
         <div className="space-y-4">
-          <Link
-            to="/passenger"
-            className="flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-5 text-left transition hover:border-primary"
+          <button
+            type="button"
+            onClick={() => openArea('passenger', '/passenger')}
+            className={`${tileClasses} w-full`}
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -32,11 +51,12 @@ function Landing() {
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-base-content/50" />
-          </Link>
+          </button>
 
-          <Link
-            to="/conductor"
-            className="flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-5 text-left transition hover:border-primary"
+          <button
+            type="button"
+            onClick={() => openArea('conductor', '/conductor')}
+            className={`${tileClasses} w-full`}
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -48,11 +68,12 @@ function Landing() {
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-base-content/50" />
-          </Link>
+          </button>
 
-          <Link
-            to="/admin"
-            className="flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-5 text-left transition hover:border-primary"
+          <button
+            type="button"
+            onClick={() => openArea('admin', '/admin')}
+            className={`${tileClasses} w-full`}
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -64,7 +85,7 @@ function Landing() {
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-base-content/50" />
-          </Link>
+          </button>
         </div>
       </div>
     </div>
