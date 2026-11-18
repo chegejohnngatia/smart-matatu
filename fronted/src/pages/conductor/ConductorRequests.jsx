@@ -9,12 +9,16 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import {
   getDestinationChangeRequests,
   decideDestinationChangeRequest,
 } from '../../services/conductorApi'
 
 export default function ConductorRequests() {
+  const { currentUser, csrfToken } = useAuth()
+  const matatuId = currentUser?.matatu?.id || 1
+
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,7 +30,7 @@ export default function ConductorRequests() {
     try {
       if (showLoading) setLoading(true)
 
-      const data = await getDestinationChangeRequests()
+      const data = await getDestinationChangeRequests(matatuId)
       setRequests(data)
       setError('')
     } catch (err) {
@@ -34,14 +38,14 @@ export default function ConductorRequests() {
     } finally {
       if (showLoading) setLoading(false)
     }
-  }, [])
+  }, [matatuId])
 
   useEffect(() => {
     loadRequests(true)
 
     const intervalId = setInterval(() => {
       loadRequests()
-    }, 1000)
+    }, 2500)
 
     return () => clearInterval(intervalId)
   }, [loadRequests])
@@ -60,7 +64,7 @@ export default function ConductorRequests() {
     setNotice('')
 
     try {
-      const result = await decideDestinationChangeRequest(requestId, action)
+      const result = await decideDestinationChangeRequest(requestId, action, csrfToken)
 
       setNotice(result.message || 'Request resolved successfully.')
 

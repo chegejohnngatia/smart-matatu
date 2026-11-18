@@ -72,9 +72,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<ConductorDashboard />} />
-        <Route path="trip" element={<ConductorSectionPage />} />
-        <Route path="history" element={<ConductorSectionPage />} />
-        <Route path="balances" element={<ConductorBalances />} />
+        <Route path="trip" element={<ConductorDashboard />} />
         <Route path="requests" element={<ConductorRequests />} />
         <Route
           path="emergency-alerts"

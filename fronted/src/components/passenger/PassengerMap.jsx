@@ -31,7 +31,7 @@ function makeProjection(stages) {
   };
 }
 
-export default function PassengerMap({ stages, location, registration, status }) {
+export default function PassengerMap({ stages, location, registration, status, destinationStageId }) {
   const [following, setFollowing] = useState(true);
   const [zoom, setZoom] = useState(100);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -106,12 +106,19 @@ export default function PassengerMap({ stages, location, registration, status })
           {routePoints.length > 1 && <polyline points={route} className="route-line" />}
           {projection.located.map((stage, index) => {
             const point = projection.project(stage.latitude, stage.longitude);
+            const isDestination = destinationStageId && Number(destinationStageId) === stage.id;
             return (
-              <g key={stage.id} className="map-stage">
-                <circle cx={point.x} cy={point.y} r="9" />
-                <text x={point.x + 15} y={point.y - 12}>{stage.name}</text>
-                {index === 0 && <text className="map-stage-meta" x={point.x + 15} y={point.y + 8}>START</text>}
-                {index === projection.located.length - 1 && <text className="map-stage-meta" x={point.x + 15} y={point.y + 8}>END</text>}
+              <g key={stage.id} className={`map-stage ${isDestination ? "map-stage-destination" : ""}`}>
+                {isDestination && (
+                  <circle cx={point.x} cy={point.y} r="22" fill="#10b981" opacity="0.25" />
+                )}
+                <circle cx={point.x} cy={point.y} r={isDestination ? 12 : 9} fill={isDestination ? "#10b981" : undefined} />
+                <text x={point.x + 15} y={point.y - 12} fontWeight={isDestination ? "bold" : "normal"}>{stage.name}</text>
+                {isDestination && (
+                  <text className="map-stage-meta font-bold" x={point.x + 15} y={point.y + 8} fill="#10b981">YOUR STOP</text>
+                )}
+                {!isDestination && index === 0 && <text className="map-stage-meta" x={point.x + 15} y={point.y + 8}>START</text>}
+                {!isDestination && index === projection.located.length - 1 && <text className="map-stage-meta" x={point.x + 15} y={point.y + 8}>END</text>}
               </g>
             );
           })}

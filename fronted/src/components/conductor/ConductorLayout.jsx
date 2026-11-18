@@ -18,18 +18,13 @@ import {
 
 const links = [
   {
-    label: 'Destinations',
+    label: 'Dashboard & Trip',
     path: '/conductor',
     icon: MapPin,
     end: true,
   },
   {
-    label: 'Balances',
-    path: '/conductor/balances',
-    icon: Wallet,
-  },
-  {
-    label: 'Destination Change Requests',
+    label: 'Destination Requests',
     path: '/conductor/requests',
     icon: ArrowLeftRight,
   },
@@ -39,7 +34,7 @@ const links = [
     icon: BellRing,
   },
   {
-    label: 'Generate QR Code',
+    label: 'Vehicle QR Code',
     path: '/conductor/qr-code',
     icon: QrCode,
   },

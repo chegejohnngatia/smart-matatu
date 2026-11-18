@@ -76,4 +76,8 @@ export const api = {
         destination_stage_id: Number(destinationStageId),
       }),
     }),
+  moveMatatu: (matatuId) =>
+    request(`/matatus/${matatuId}/move`, { method: "POST" }),
+  resetMatatu: (matatuId) =>
+    request(`/matatus/${matatuId}/reset`, { method: "POST" }),
 };
