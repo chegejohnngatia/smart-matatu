@@ -3,7 +3,8 @@
 ## Scope
 - Live location tracking logic (geolocation watcher, socket/API updates, hooks,
   state) is working. Never rewrite or change it. Only restyle and restructure UI.
-- Do not add a new map library. Use the one already in the project.
+- The passenger map uses Leaflet with OpenStreetMap tiles. Do not add another
+  map library or tile provider.
 
 ## Visual direction (must look like a shipped product, not AI-generated)
 - One neutral palette plus ONE accent color.

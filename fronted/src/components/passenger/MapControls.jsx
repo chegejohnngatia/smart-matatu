@@ -13,7 +13,7 @@ export default function MapControls({ following, onFollow, zoom, onZoom }) {
         <LocateFixed size={17} />
         <span className="hidden sm:inline">{following ? "Following" : "Follow vehicle"}</span>
       </button>
-      <span className="sr-only" aria-live="polite">Map zoom {zoom} percent</span>
+      {zoom != null && <span className="sr-only" aria-live="polite">Map zoom level {zoom}</span>}
     </div>
   );
 }
