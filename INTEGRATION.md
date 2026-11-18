@@ -77,6 +77,8 @@ The passenger React dashboard polls the vehicle status endpoint every three seco
 
 The passenger UI treats a location older than 60 seconds as stale and continues showing the last reported point. `heading` is estimated in the browser from successive coordinates because the current backend payload does not include heading. The React app does not send GPS updates and must never contain `CONDUCTOR_LOCATION_TOKEN`.
 
+The passenger map renders Leaflet with OpenStreetMap raster tiles, so passenger devices need internet connectivity to see street imagery; the route, stage pins, and vehicle marker render from the API data regardless of tile availability.
+
 Backend location fields retain snake_case. `fronted/src/api/client.js` converts admin response names to the existing React camelCase convention. Distances are kilometres; speed is kilometres per hour; GPS timestamps are ISO-8601 strings; coordinates are decimal degrees.
 
 ## Decisions

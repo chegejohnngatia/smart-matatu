@@ -6281,6 +6281,7 @@ def notify_passenger(passenger_id):
         connection.close()
 
 @app.route("/vehicle-status/<int:matatu_id>")
+@app.route("/api/vehicle-status/<int:matatu_id>")
 def vehicle_status(matatu_id):
 
     connection = get_db_connection()
@@ -6296,6 +6297,8 @@ def vehicle_status(matatu_id):
 
     if matatu is None:
         connection.close()
+        if request.path.startswith("/api/"):
+            return jsonify({"error": {"message": "Matatu not found"}}), 404
         return "Matatu not found", 404
 
     # Get current matatu location
@@ -6309,6 +6312,8 @@ def vehicle_status(matatu_id):
 
     if location is None:
         connection.close()
+        if request.path.startswith("/api/"):
+            return jsonify({"error": {"message": "Matatu location not initialized."}}), 404
         return "Matatu location not initialized.", 404
 
     matatu_latitude = location["latitude"]
@@ -6336,6 +6341,13 @@ def vehicle_status(matatu_id):
     ).fetchall()
 
     connection.close()
+
+    if not passengers and request.path.startswith("/api/"):
+        return jsonify({
+            "matatu": matatu["registration_number"],
+            "location": location_payload(location),
+            "passengers": []
+        })
 
     if not passengers:
         return "No passenger destinations registered."
@@ -6391,6 +6403,7 @@ def vehicle_status(matatu_id):
 
     return {
         "matatu": matatu["registration_number"],
+        "location": location_payload(location),
         "passengers": results
     }
 
