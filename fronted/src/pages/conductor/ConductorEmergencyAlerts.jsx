@@ -77,8 +77,9 @@ function AlertCard({ alert, onAcknowledge, acknowledgingId }) {
 }
 
 export default function ConductorEmergencyAlerts() {
-  // Retrieve the authenticated session's CSRF token.
-  const { csrfToken } = useAuth()
+  // Retrieve the authenticated session's CSRF token and matatu assignment.
+  const { csrfToken, currentUser } = useAuth()
+  const matatuId = currentUser?.matatu?.id
 
   const [emergencyAlerts, setEmergencyAlerts] = useState({
     unresolved_count: 0,
@@ -98,6 +99,8 @@ export default function ConductorEmergencyAlerts() {
   const requestInProgress = useRef(false)
 
   const loadEmergencyAlerts = useCallback(async (showLoading = false) => {
+    if (!matatuId) return
+
     // Prevent overlapping requests.
     if (requestInProgress.current) return
 
@@ -108,7 +111,7 @@ export default function ConductorEmergencyAlerts() {
 
       setAlertError('')
 
-      const data = await getConductorEmergencyAlerts()
+      const data = await getConductorEmergencyAlerts(matatuId)
       setEmergencyAlerts(data)
     } catch (err) {
       setAlertError(err.message || 'Could not load emergency alerts.')
@@ -116,9 +119,11 @@ export default function ConductorEmergencyAlerts() {
       setLoading(false)
       requestInProgress.current = false
     }
-  }, [])
+  }, [matatuId])
 
   useEffect(() => {
+    if (!matatuId) return
+
     loadEmergencyAlerts(true)
 
     const intervalId = setInterval(() => {
@@ -126,7 +131,7 @@ export default function ConductorEmergencyAlerts() {
     }, 1000)
 
     return () => clearInterval(intervalId)
-  }, [loadEmergencyAlerts])
+  }, [matatuId, loadEmergencyAlerts])
 
   async function handleAcknowledge(alertId) {
     if (acknowledgingId !== null) return
@@ -137,7 +142,7 @@ export default function ConductorEmergencyAlerts() {
 
     try {
       // Send the authenticated session's CSRF token.
-      await acknowledgeEmergencyAlert(alertId, csrfToken)
+      await acknowledgeEmergencyAlert(alertId, csrfToken, matatuId)
 
       setAcknowledgementMessage('Alert acknowledged successfully.')
 

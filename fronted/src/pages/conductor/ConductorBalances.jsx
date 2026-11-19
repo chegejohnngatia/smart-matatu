@@ -1,5 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   Wallet,
   CircleDollarSign,
@@ -19,10 +20,9 @@ import {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '';
 
-const MATATU_ID =
-  import.meta.env.VITE_CONDUCTOR_MATATU_ID || "1";
-
 export default function ConductorBalances() {
+  const { currentUser, csrfToken } = useAuth();
+  const matatuId = currentUser?.matatu?.id;
   const [pendingBalances, setPendingBalances] = useState([]);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState([]);
   const [history, setHistory] = useState([]);
@@ -39,9 +39,12 @@ export default function ConductorBalances() {
   const [showHistory, setShowHistory] = useState(false);
 
   const loadBalances = useCallback(async () => {
+    if (!matatuId) return;
+
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/conductor/balances/${MATATU_ID}`
+        `${API_BASE_URL}/api/conductor/balances/${matatuId}`,
+        { credentials: "include" }
       );
 
       const data = await response.json();
@@ -59,9 +62,11 @@ export default function ConductorBalances() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [matatuId]);
 
   useEffect(() => {
+    if (!matatuId) return;
+
     let isLoading = false;
 
     const refreshBalances = async () => {
@@ -81,12 +86,17 @@ export default function ConductorBalances() {
     const intervalId = window.setInterval(refreshBalances, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [loadBalances]);
+  }, [matatuId, loadBalances]);
 
   async function handleAddBalance(event) {
     event.preventDefault();
     setError("");
     setMessage("");
+
+    if (!csrfToken) {
+      setError("Your session has expired. Please log in again.");
+      return;
+    }
 
     if (!passengerId.trim() || !amount.trim()) {
       setError("Enter the passenger ID and amount owed.");
@@ -104,10 +114,14 @@ export default function ConductorBalances() {
       setSaving(true);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/conductor/balances/${MATATU_ID}`,
+        `${API_BASE_URL}/api/conductor/balances/${matatuId}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+          },
           body: JSON.stringify({
             passenger_id: passengerId.trim(),
             amount: numericAmount,
@@ -142,6 +156,11 @@ export default function ConductorBalances() {
 
     if (!confirmed) return;
 
+    if (!csrfToken) {
+      setError("Your session has expired. Please log in again.");
+      return;
+    }
+
     setError("");
     setMessage("");
 
@@ -152,8 +171,12 @@ export default function ConductorBalances() {
         `${API_BASE_URL}/api/conductor/balances/${balance.balance_id}/pay`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matatu_id: Number(MATATU_ID) }),
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+          },
+          body: JSON.stringify({ matatu_id: Number(matatuId) }),
         }
       );
 

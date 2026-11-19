@@ -2,12 +2,10 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '';
 
-const MATATU_ID =
-  import.meta.env.VITE_CONDUCTOR_MATATU_ID || "1";
-
-export async function getConductorDashboard() {
+export async function getConductorDashboard(matatuId) {
   const response = await fetch(
-    `${API_BASE_URL}/api/conductor/dashboard/${MATATU_ID}`
+    `${API_BASE_URL}/api/conductor/dashboard/${matatuId}`,
+    { credentials: 'include' }
   );
 
   if (!response.ok) {
@@ -21,9 +19,10 @@ export async function getConductorDashboard() {
   return response.json();
 }
 
-export async function getDestinationChangeRequests() {
+export async function getDestinationChangeRequests(matatuId) {
   const response = await fetch(
-    `${API_BASE_URL}/api/conductor/destination-change-requests/${MATATU_ID}`
+    `${API_BASE_URL}/api/conductor/destination-change-requests/${matatuId}`,
+    { credentials: 'include' }
   );
 
   const data = await response.json().catch(() => ({}));
@@ -37,13 +36,19 @@ export async function getDestinationChangeRequests() {
   return data.requests || [];
 }
 
-export async function decideDestinationChangeRequest(requestId, action) {
+export async function decideDestinationChangeRequest(requestId, action, csrfToken) {
+  if (!csrfToken) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/api/conductor/destination-change-requests/${requestId}/decision`,
     {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
       },
       body: JSON.stringify({ action }),
     }
@@ -60,9 +65,10 @@ export async function decideDestinationChangeRequest(requestId, action) {
   return data;
 }
 
-export async function getConductorEmergencyAlerts() {
+export async function getConductorEmergencyAlerts(matatuId) {
   const response = await fetch(
-    `${API_BASE_URL}/api/conductor/emergency-alerts/${MATATU_ID}`
+    `${API_BASE_URL}/api/conductor/emergency-alerts/${matatuId}`,
+    { credentials: 'include' }
   );
 
   const data = await response.json().catch(() => ({}));
@@ -77,7 +83,7 @@ export async function getConductorEmergencyAlerts() {
 }
 
 // Acknowledge an emergency alert using the authenticated session and CSRF token.
-export async function acknowledgeEmergencyAlert(alertId, csrfToken) {
+export async function acknowledgeEmergencyAlert(alertId, csrfToken, matatuId) {
   if (!csrfToken) {
     throw new Error('Your session has expired. Please log in again.');
   }
@@ -92,7 +98,7 @@ export async function acknowledgeEmergencyAlert(alertId, csrfToken) {
         'X-CSRF-Token': csrfToken,
       },
       body: JSON.stringify({
-        matatu_id: Number(MATATU_ID),
+        matatu_id: Number(matatuId),
       }),
     }
   );

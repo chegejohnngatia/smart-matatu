@@ -3,18 +3,23 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertCircle, RefreshCw, Bus, MapPin, ArrowRight } from 'lucide-react'
 import { getConductorDashboard } from '../../services/conductorApi'
+import { useAuth } from '../../context/AuthContext'
 
 export default function ConductorDashboard() {
+  const { currentUser } = useAuth()
+  const matatuId = currentUser?.matatu?.id
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   async function loadDashboard(showLoading = false) {
+    if (!matatuId) return
+
     try {
       if (showLoading) setLoading(true)
 
       setError('')
-      const data = await getConductorDashboard()
+      const data = await getConductorDashboard(matatuId)
       setDashboard(data)
     } catch (err) {
       setError(err.message || 'Could not load destinations.')
@@ -24,6 +29,8 @@ export default function ConductorDashboard() {
   }
 
   useEffect(() => {
+    if (!matatuId) return
+
     loadDashboard(true)
 
     const dashboardIntervalId = setInterval(() => {
@@ -33,7 +40,7 @@ export default function ConductorDashboard() {
     return () => {
       clearInterval(dashboardIntervalId)
     }
-  }, [])
+  }, [matatuId])
 
   const stageGroups = Object.values(
     (dashboard?.passengers || []).reduce((groups, passenger) => {
